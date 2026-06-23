@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
+import { SOCKET_URL } from "../config/api";
 import { Link } from "react-router-dom";
 import {
   getPoliceEmergencies,
@@ -136,7 +137,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
 
-    socketRef.current = io("http://localhost:5000");
+    socketRef.current = io(SOCKET_URL, { transports: ["websocket", "polling"] });
     const socket = socketRef.current;
 
     socket.on("connect", () => {

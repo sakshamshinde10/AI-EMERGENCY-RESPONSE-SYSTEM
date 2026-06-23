@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { getFireEmergencies, updateEmergencyStatus } from "../services/emergencyApi";
 import { io } from "socket.io-client";
+import { SOCKET_URL } from "../config/api";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ReportEmergencyDialog from "../components/dashboard/ReportEmergencyDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -86,7 +87,7 @@ const FirePanel = () => {
   useEffect(() => {
     fetchFireCases();
 
-    socketRef.current = io("http://localhost:5000");
+    socketRef.current = io(SOCKET_URL, { transports: ["websocket", "polling"] });
     const socket = socketRef.current;
 
     socket.on("connect", () => {

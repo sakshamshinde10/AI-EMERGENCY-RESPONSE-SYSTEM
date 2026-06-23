@@ -1,13 +1,13 @@
 import axios from "axios";
+import { API_EMERGENCY_URL } from "../config/api";
 
-const API = "http://localhost:5000/api/emergency";
-
-// Create axios instance with auth header interceptor
+// Create axios instance for emergency endpoints
 const apiClient = axios.create({
-  baseURL: API,
+  baseURL: API_EMERGENCY_URL,
+  timeout: 15000,
 });
 
-// Attach JWT token to every request if available
+// Attach JWT token to every request automatically
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("ecp_token");
@@ -16,10 +16,25 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
+  (error) => Promise.reject(error)
+);
+
+// Global response error interceptor for consistent error handling
+apiClient.interceptors.response.use(
+  (response) => response,
   (error) => {
-    return Promise.reject(error);
+    const message =
+      error.response?.data?.message ||
+      (error.code === "ECONNABORTED"
+        ? "Request timed out. Please try again."
+        : error.code === "ERR_NETWORK"
+        ? "Network error. Please check your connection."
+        : "An unexpected error occurred.");
+    return Promise.reject(Object.assign(error, { userMessage: message }));
   }
 );
+
+// ── Emergency API functions ────────────────────────────────────────────────
 
 export const getPoliceEmergencies = async () => {
   const response = await apiClient.get("/police");
@@ -42,11 +57,7 @@ export const getAllEmergencies = async () => {
 };
 
 export const updateEmergencyStatus = async (id, status) => {
-  const response = await apiClient.patch(
-    `/${id}/status`,
-    { status }
-  );
-
+  const response = await apiClient.patch(`/${id}/status`, { status });
   return response.data;
 };
 

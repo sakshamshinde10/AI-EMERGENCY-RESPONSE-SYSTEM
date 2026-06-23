@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { getAllEmergencies } from "../services/emergencyApi";
 import { io } from "socket.io-client";
+import { SOCKET_URL } from "../config/api";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +96,7 @@ const AnalyticsDashboard = () => {
   useEffect(() => {
     fetchAllCases();
 
-    socketRef.current = io("http://localhost:5000");
+    socketRef.current = io(SOCKET_URL, { transports: ["websocket", "polling"] });
     const socket = socketRef.current;
 
     socket.on("connect", () => {
