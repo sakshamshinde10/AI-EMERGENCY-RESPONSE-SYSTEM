@@ -175,13 +175,13 @@ const FirePanel = () => {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case "Critical":
-        return "bg-red-600/10 text-red-600 border-red-600/30 font-bold";
+        return "bg-red-950/40 text-red-400 border-red-800/40 font-bold";
       case "High":
-        return "bg-orange-500/10 text-orange-500 border-orange-500/30 font-bold";
+        return "bg-orange-950/40 text-orange-400 border-orange-800/40 font-bold";
       case "Medium":
-        return "bg-amber-500/10 text-amber-500 border-amber-500/30 font-bold";
+        return "bg-yellow-950/40 text-yellow-400 border-yellow-850/40 font-bold";
       default:
-        return "bg-blue-600/10 text-blue-600 border-blue-600/30 font-bold";
+        return "bg-blue-950/40 text-blue-400 border-blue-800/40 font-bold";
     }
   };
 
@@ -220,18 +220,18 @@ const FirePanel = () => {
         size="icon"
         onClick={() => setAudioEnabled(!audioEnabled)}
         title={audioEnabled ? "Mute audio alerts" : "Unmute audio alerts"}
-        className="h-9 w-9 rounded-lg border-[#E2E8F0] hover:bg-[#F8FAFC] shrink-0"
+        className="h-9 w-9 rounded-lg border-white/10 bg-[#0B0B0B] hover:bg-white/5 shrink-0"
       >
         {audioEnabled ? (
-          <Volume2 className="h-4 w-4 text-emerald-600 animate-pulse" />
+          <Volume2 className="h-4 w-4 text-emerald-400 animate-pulse" />
         ) : (
-          <VolumeX className="h-4 w-4 text-[#64748B]" />
+          <VolumeX className="h-4 w-4 text-white/40" />
         )}
       </Button>
 
       <Button
         onClick={() => setReportDialogOpen(true)}
-        className="bg-[#DC2626] hover:bg-[#B91C1C] text-white font-semibold text-xs h-9 shadow-sm px-3 gap-1.5"
+        className="bg-[#DC2626] hover:bg-[#B91C1C] hover:shadow-lg hover:shadow-red-500/25 text-white font-semibold text-xs h-9 px-4 gap-1.5 rounded-lg border-none"
       >
         <span>+ File Report</span>
       </Button>
@@ -242,16 +242,16 @@ const FirePanel = () => {
   const renderCaseCard = (item) => (
     <div
       key={item._id}
-      className={`bg-white rounded-xl border border-[#E2E8F0] hover:border-[#CBD5E1] shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden border-l-[3px] ${getAccentByPriority(item.priority)} group`}
+      className={`bg-[#0B0B0B] rounded-xl border border-white/5 hover:border-white/15 shadow-2xl transition-all duration-200 overflow-hidden border-l-[3px] ${getAccentByPriority(item.priority)} group`}
     >
       <div className="p-4 pb-3">
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-1.5 truncate flex-1">
-            <h3 className="text-sm font-bold text-[#0F172A] leading-tight truncate">
+            <h3 className="text-sm font-bold text-white leading-tight truncate">
               {item.name}
             </h3>
             {item.language && item.language !== "English" && (
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] px-1 py-0 shrink-0 hover:bg-purple-100" variant="outline">
+              <Badge className="bg-purple-950/40 text-purple-400 border-purple-800/40 text-[9px] px-1 py-0 shrink-0 hover:bg-purple-900/30" variant="outline">
                 {item.language === "Hindi" ? "🇮🇳 Hindi" : item.language === "Marathi" ? "🇮🇳 Marathi" : item.language}
               </Badge>
             )}
@@ -261,36 +261,36 @@ const FirePanel = () => {
           </Badge>
         </div>
 
-        <p className="text-xs text-[#475569] leading-relaxed line-clamp-2 mb-3">
+        <p className="text-xs text-white/60 leading-relaxed line-clamp-2 mb-3">
           {item.description || item.message}
         </p>
 
         <div className="flex flex-col gap-1.5">
           {(item.address || item.location) && (
-            <div className="flex items-start gap-1.5 text-[11px] text-[#0F172A] font-semibold bg-slate-50 border border-slate-200/60 rounded-lg p-2" title={item.address || item.location}>
+            <div className="flex items-start gap-1.5 text-[11px] text-white/95 font-semibold bg-white/5 border border-white/5 rounded-lg p-2" title={item.address || item.location}>
               <MapPin className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
                 <span className="leading-tight">{item.address || item.location}</span>
-                {item.area && <span className="text-[9px] text-[#64748B] font-bold">Area: {item.area}</span>}
+                {item.area && <span className="text-[9px] text-white/40 font-bold">Area: {item.area}</span>}
               </div>
             </div>
           )}
           {item.landmark && (
-            <div className="flex items-center gap-1.5 text-[10px] text-purple-700 bg-purple-50 border border-purple-100/80 rounded px-1.5 py-0.5 w-fit font-bold">
+            <div className="flex items-center gap-1.5 text-[10px] text-purple-400 bg-purple-950/30 border border-purple-800/20 rounded px-1.5 py-0.5 w-fit font-bold">
               <span className="text-[8px] uppercase tracking-wider text-purple-500">Landmark:</span>
               <span className="truncate">{item.landmark}</span>
             </div>
           )}
           {item.phone && (
-            <div className="flex items-center gap-1.5 text-[11px] text-[#64748B]">
-              <Phone className="h-3 w-3 text-[#94A3B8] shrink-0" />
+            <div className="flex items-center gap-1.5 text-[11px] text-white/40">
+              <Phone className="h-3 w-3 text-white/20 shrink-0" />
               <span>{item.phone}</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5 text-[11px] text-[#94A3B8]">
+          <div className="flex items-center gap-1.5 text-[11px] text-white/50">
             <Clock className="h-3 w-3 shrink-0" />
             <span className="font-mono">{formatTime(item.createdAt)}</span>
-            <span className="text-[#CBD5E1]">·</span>
+            <span className="text-white/20">·</span>
             <span>{formatDate(item.createdAt)}</span>
           </div>
         </div>
@@ -304,7 +304,7 @@ const FirePanel = () => {
               variant="outline"
               size="sm"
               onClick={() => setExpandedMapCardId(expandedMapCardId === item._id ? null : item._id)}
-              className={`flex-1 font-bold text-[10px] h-8 rounded-lg flex items-center justify-center gap-1 border-[#E2E8F0] ${expandedMapCardId === item._id ? 'bg-[#0F172A] text-white hover:bg-[#1E293B]' : 'hover:bg-[#F8FAFC]'}`}
+              className={`flex-1 font-bold text-[10px] h-8 rounded-lg flex items-center justify-center gap-1 border-white/10 bg-[#0B0B0B] hover:bg-[#121212] text-white hover:text-white ${expandedMapCardId === item._id ? 'bg-white/10 text-white' : ''}`}
             >
               📍 {expandedMapCardId === item._id ? 'Hide Map' : 'View Map'}
             </Button>
@@ -313,7 +313,7 @@ const FirePanel = () => {
           {currentTab === "pending" && (
             <Button
               onClick={() => handleUpdateStatus(item._id, "InProgress")}
-              className="flex-grow bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+              className="flex-grow bg-[#DC2626] hover:bg-[#B91C1C] hover:shadow-lg hover:shadow-red-500/20 text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1.5 border-none shadow-sm cursor-pointer transition-all duration-200"
             >
               <Truck className="h-3.5 w-3.5" /> Dispatch Engines
             </Button>
@@ -321,13 +321,13 @@ const FirePanel = () => {
           {currentTab === "active" && (
             <Button
               onClick={() => handleUpdateStatus(item._id, "Resolved")}
-              className="flex-grow bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+              className="flex-grow bg-[#16A34A] hover:bg-[#15803D] hover:shadow-lg hover:shadow-green-500/20 text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1.5 border-none shadow-sm cursor-pointer transition-all duration-200"
             >
               <CheckCircle className="h-3.5 w-3.5" /> Hazard Resolved
             </Button>
           )}
           {currentTab === "resolved" && (
-            <span className="text-[#16A34A] text-[10px] font-bold flex items-center justify-center gap-1 py-1.5 border border-[#16A34A]/20 bg-[#16A34A]/5 rounded-lg flex-grow">
+            <span className="text-[#16A34A] text-[10px] font-bold flex items-center justify-center gap-1 py-1.5 border border-[#16A34A]/20 bg-[#16A34A]/10 rounded-lg flex-grow">
               <CheckCircle className="h-3.5 w-3.5" /> Secured
             </span>
           )}
@@ -335,7 +335,7 @@ const FirePanel = () => {
 
         {/* Embedded Interactive Google Map */}
         {expandedMapCardId === item._id && (
-          <div className="w-full h-40 border border-[#E2E8F0] rounded-lg overflow-hidden mt-1 animate-fade-in">
+          <div className="w-full h-40 border border-white/10 rounded-lg overflow-hidden mt-1 animate-fade-in">
             <iframe
               width="100%"
               height="100%"
@@ -349,6 +349,7 @@ const FirePanel = () => {
               marginHeight="0"
               marginWidth="0"
               title="Incident Location Map"
+              className="opacity-80 invert filter contrast-125"
             />
           </div>
         )}
@@ -360,8 +361,8 @@ const FirePanel = () => {
   const renderTableRow = (item, index) => (
     <tr
       key={item._id}
-      className={`border-b border-[#F1F5F9] hover:bg-[#F8FAFC] transition-colors ${
-        index % 2 === 0 ? "bg-white" : "bg-[#FAFBFC]"
+      className={`border-b border-white/5 hover:bg-white/5 transition-colors ${
+        index % 2 === 0 ? "bg-[#0B0B0B]" : "bg-[#0E0E0E]"
       }`}
     >
       <td className="px-4 py-3">
@@ -371,9 +372,9 @@ const FirePanel = () => {
             item.priority === "High" ? "bg-orange-500" :
             item.priority === "Medium" ? "bg-amber-500" : "bg-blue-500"
           }`} />
-          <span className="text-sm font-semibold text-[#0F172A] truncate max-w-[180px]">{item.name}</span>
+          <span className="text-sm font-semibold text-white truncate max-w-[180px]">{item.name}</span>
           {item.language && item.language !== "English" && (
-            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] px-1 py-0 shrink-0 hover:bg-purple-100" variant="outline">
+            <Badge className="bg-purple-950/40 text-purple-400 border-purple-800/40 text-[9px] px-1 py-0 shrink-0" variant="outline">
               {item.language === "Hindi" ? "🇮🇳 Hindi" : item.language === "Marathi" ? "🇮🇳 Marathi" : item.language}
             </Badge>
           )}
@@ -385,32 +386,32 @@ const FirePanel = () => {
         </Badge>
       </td>
       <td className="px-4 py-3">
-        <p className="text-xs text-[#64748B] truncate max-w-[250px]">{item.description || item.message}</p>
+        <p className="text-xs text-white/50 truncate max-w-[250px]">{item.description || item.message}</p>
       </td>
       <td className="px-4 py-3">
         {(item.address || item.location) && (
           <div className="flex flex-col gap-0.5 max-w-[200px]" title={item.address || item.location}>
-            <div className="flex items-center gap-1 text-xs text-[#0F172A] font-bold">
+            <div className="flex items-center gap-1 text-xs text-white font-bold">
               <MapPin className="h-3 w-3 text-red-500 shrink-0" />
               <span className="truncate">{item.address || item.location}</span>
             </div>
             {item.landmark && (
-              <span className="text-[9px] font-semibold text-purple-600 bg-purple-50 border border-purple-100/60 rounded px-1 py-0.25 w-fit">
-                L: {item.landmark}
+              <span className="text-[9px] font-semibold text-purple-400 bg-purple-950/30 border border-purple-800/20 px-1.5 py-0.5 rounded-md w-fit">
+                {item.landmark}
               </span>
             )}
           </div>
         )}
       </td>
       <td className="px-4 py-3">
-        <span className="text-xs text-[#94A3B8] font-mono">{formatDate(item.createdAt)}</span>
+        <span className="text-xs text-white/40 font-mono">{formatDate(item.createdAt)}</span>
       </td>
       <td className="px-4 py-3 text-right">
         {currentTab === "pending" && (
           <Button
             size="sm"
             onClick={() => handleUpdateStatus(item._id, "InProgress")}
-            className="bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-[10px] h-7 px-3 rounded-md gap-1 cursor-pointer"
+            className="bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold text-[10px] h-7 px-3 rounded-md gap-1 cursor-pointer border-none"
           >
             <Truck className="h-3 w-3" /> Dispatch
           </Button>
@@ -419,7 +420,7 @@ const FirePanel = () => {
           <Button
             size="sm"
             onClick={() => handleUpdateStatus(item._id, "Resolved")}
-            className="bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-[10px] h-7 px-3 rounded-md gap-1 cursor-pointer"
+            className="bg-[#16A34A] hover:bg-[#15803D] text-white font-bold text-[10px] h-7 px-3 rounded-md gap-1 cursor-pointer border-none"
           >
             <CheckCircle className="h-3 w-3" /> Resolve
           </Button>
@@ -444,11 +445,11 @@ const FirePanel = () => {
     const Icon = cfg.icon;
     return (
       <div className="text-center py-24 flex flex-col items-center justify-center">
-        <div className="w-14 h-14 rounded-2xl bg-[#F1F5F9] flex items-center justify-center mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center mb-4">
           <Icon className={`h-7 w-7 ${cfg.color}`} />
         </div>
-        <p className="text-sm font-semibold text-[#64748B] mb-1">{cfg.text}</p>
-        <p className="text-xs text-[#94A3B8]">New alarms will appear here automatically via live feed.</p>
+        <p className="text-sm font-semibold text-white/70 mb-1">{cfg.text}</p>
+        <p className="text-xs text-white/40">New alarms will appear here automatically via live feed.</p>
       </div>
     );
   };
@@ -460,61 +461,67 @@ const FirePanel = () => {
       <div className="flex flex-col gap-6">
         {/* ── Summary Stats ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className={`bg-white rounded-xl border p-4 transition-all ${
-            currentTab === "pending" ? "border-red-300 ring-1 ring-red-100" : "border-[#E2E8F0]"
+          <div className={`rounded-xl border p-4 transition-all ${
+            currentTab === "pending" 
+              ? "border-red-500/50 bg-[#0B0B0B] shadow-[0_0_20px_rgba(239,68,68,0.05)]" 
+              : "border-white/5 bg-[#0B0B0B]"
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Active Alarms</span>
-              <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                <Flame className="h-3.5 w-3.5 text-red-500" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Active Alarms</span>
+              <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <Flame className="h-3.5 w-3.5 text-red-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-[#0F172A]">{allPending.length}</p>
-            <p className="text-[10px] text-[#94A3B8] mt-0.5">Awaiting response</p>
+            <p className="text-2xl font-black text-white">{allPending.length}</p>
+            <p className="text-[10px] text-white/30 mt-0.5">Awaiting response</p>
           </div>
 
-          <div className={`bg-white rounded-xl border p-4 transition-all ${
-            currentTab === "active" ? "border-orange-300 ring-1 ring-orange-100" : "border-[#E2E8F0]"
+          <div className={`rounded-xl border p-4 transition-all ${
+            currentTab === "active" 
+              ? "border-orange-500/50 bg-[#0B0B0B] shadow-[0_0_20px_rgba(245,158,11,0.05)]" 
+              : "border-white/5 bg-[#0B0B0B]"
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Dispatched</span>
-              <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
-                <Truck className="h-3.5 w-3.5 text-orange-500" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Dispatched</span>
+              <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <Truck className="h-3.5 w-3.5 text-orange-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-[#0F172A]">{allInProgress.length}</p>
-            <p className="text-[10px] text-[#94A3B8] mt-0.5">Engines en route</p>
+            <p className="text-2xl font-black text-white">{allInProgress.length}</p>
+            <p className="text-[10px] text-white/30 mt-0.5">Engines en route</p>
           </div>
 
-          <div className={`bg-white rounded-xl border p-4 transition-all ${
-            currentTab === "resolved" ? "border-emerald-300 ring-1 ring-emerald-100" : "border-[#E2E8F0]"
+          <div className={`rounded-xl border p-4 transition-all ${
+            currentTab === "resolved" 
+              ? "border-emerald-500/50 bg-[#0B0B0B] shadow-[0_0_20px_rgba(16,185,129,0.05)]" 
+              : "border-white/5 bg-[#0B0B0B]"
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Resolved</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Resolved</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-[#0F172A]">{allResolved.length}</p>
-            <p className="text-[10px] text-[#94A3B8] mt-0.5">Hazards secured</p>
+            <p className="text-2xl font-black text-white">{allResolved.length}</p>
+            <p className="text-[10px] text-white/30 mt-0.5">Hazards secured</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-4">
+          <div className="bg-[#0B0B0B] border border-white/5 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Critical</span>
-              <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center">
-                <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Critical</span>
+              <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="h-3.5 w-3.5 text-red-400" />
               </div>
             </div>
-            <p className="text-2xl font-black text-[#0F172A]">{criticalCount}</p>
-            <p className="text-[10px] text-[#94A3B8] mt-0.5">Need immediate action</p>
+            <p className="text-2xl font-black text-white">{criticalCount}</p>
+            <p className="text-[10px] text-white/30 mt-0.5">Need immediate action</p>
           </div>
         </div>
 
         {/* ── Toolbar ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-[#0F172A] flex items-center gap-2">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
               <span className={`flex h-2 w-2 rounded-full ${
                 currentTab === "pending" ? "bg-red-500 animate-pulse" :
                 currentTab === "active" ? "bg-orange-500 animate-pulse" : "bg-emerald-500"
@@ -522,32 +529,32 @@ const FirePanel = () => {
               {currentTab === "pending" ? "Active Alarms Queue" :
                currentTab === "active" ? "Engines Dispatched" : "Resolved Incidents"}
             </h2>
-            <Badge variant="secondary" className="bg-[#F1F5F9] text-[#0F172A] font-bold text-[10px] px-2">
+            <Badge variant="secondary" className="bg-white/5 text-white/70 border border-white/10 font-bold text-[10px] px-2 rounded-full">
               {currentList.length}
             </Badge>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#94A3B8]" />
+            <div className="relative flex-1 sm:flex-initial sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
               <Input
                 placeholder="Search fire cases..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs bg-white border-[#E2E8F0] focus:ring-[#DC2626]/20 focus:border-[#DC2626] rounded-lg"
+                className="pl-8 h-8 text-xs bg-[#0B0B0B] border-white/10 text-white placeholder:text-white/30 focus:border-[#DC2626]/50 rounded-lg focus:ring-0"
               />
             </div>
 
-            <div className="flex items-center border border-[#E2E8F0] rounded-lg overflow-hidden">
+            <div className="flex items-center border border-white/10 bg-[#0B0B0B] rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#0F172A] text-white" : "bg-white text-[#94A3B8] hover:text-[#64748B]"}`}
+                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "grid" ? "bg-white/10 text-white" : "bg-transparent text-white/40 hover:text-white/70"}`}
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => setViewMode("table")}
-                className={`p-1.5 transition-colors ${viewMode === "table" ? "bg-[#0F172A] text-white" : "bg-white text-[#94A3B8] hover:text-[#64748B]"}`}
+                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "table" ? "bg-white/10 text-white" : "bg-transparent text-white/40 hover:text-white/70"}`}
               >
                 <List className="h-3.5 w-3.5" />
               </button>
@@ -557,18 +564,18 @@ const FirePanel = () => {
               variant="outline"
               size="icon"
               onClick={fetchFireCases}
-              className="h-8 w-8 border-[#E2E8F0] hover:bg-[#F8FAFC] shrink-0 rounded-lg"
+              className="h-8 w-8 border-white/10 bg-[#0B0B0B] hover:bg-white/5 shrink-0 rounded-lg text-white/60 hover:text-white"
             >
-              <RefreshCw className="h-3.5 w-3.5 text-[#64748B]" />
+              <RefreshCw className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
 
         {/* ── Content ── */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-[#64748B] gap-3">
+          <div className="flex flex-col items-center justify-center py-24 text-white/40 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-[#DC2626]" />
-            <p className="text-sm font-semibold">Syncing station alarm status...</p>
+            <p className="text-sm font-semibold text-white/60">Syncing station alarm status...</p>
           </div>
         ) : currentList.length === 0 ? (
           renderEmptyState()
@@ -577,16 +584,16 @@ const FirePanel = () => {
             {currentList.map((item) => renderCaseCard(item))}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm overflow-hidden">
+          <div className="bg-[#0B0B0B] rounded-xl border border-white/5 shadow-2xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Caller</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Priority</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Description</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 text-left text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Time</th>
-                  <th className="px-4 py-3 text-right text-[10px] font-bold text-[#64748B] uppercase tracking-wider">Action</th>
+                <tr className="bg-[#0E0E0E] border-b border-white/5">
+                  <th className="px-4 py-3 text-left text-[10px] font-bold text-white/40 uppercase tracking-wider">Caller</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold text-white/40 uppercase tracking-wider">Priority</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold text-white/40 uppercase tracking-wider">Description</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold text-white/40 uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 text-left text-[10px] font-bold text-white/40 uppercase tracking-wider">Time</th>
+                  <th className="px-4 py-3 text-right text-[10px] font-bold text-white/40 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody>

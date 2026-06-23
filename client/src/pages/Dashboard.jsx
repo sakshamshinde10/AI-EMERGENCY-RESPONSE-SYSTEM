@@ -22,6 +22,9 @@ import {
   Filter, 
   Clock, 
   Phone, 
+  PhoneCall,
+  Globe,
+  Mic,
   AlertOctagon, 
   CheckCircle2, 
   Play, 
@@ -487,7 +490,7 @@ const Dashboard = () => {
                           {item.message}
                         </p>
 
-                        {/* Telemetry data: Phone & Time */}
+                        {/* Telemetry data: Phone, Source & Time */}
                         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                           {item.phone && (
                             <span className="flex items-center gap-1">
@@ -497,7 +500,33 @@ const Dashboard = () => {
                           <span className="flex items-center gap-1 font-mono">
                             <Clock className="h-3.5 w-3.5" /> {new Date(item.createdAt).toLocaleString()}
                           </span>
+
+                          {/* Source Badge: Call or Web */}
+                          {item.source === "call" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 text-violet-500 border border-violet-500/20">
+                              <PhoneCall className="h-3 w-3" /> Via Call
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-500 border border-sky-500/20">
+                              <Globe className="h-3 w-3" /> Via Web
+                            </span>
+                          )}
                         </div>
+
+                        {/* Recording Playback — only for call emergencies */}
+                        {item.source === "call" && item.recordingUrl && (
+                          <div className="mt-1">
+                            <p className="text-[10px] font-bold text-muted-foreground mb-1.5 flex items-center gap-1">
+                              <Mic className="h-3 w-3 text-violet-500" /> Caller Voice Recording
+                            </p>
+                            <audio
+                              controls
+                              src={item.recordingUrl}
+                              className="w-full h-8 rounded-lg"
+                              style={{ filter: "invert(0) sepia(0) saturate(1) hue-rotate(0deg)" }}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Right: Dispatcher Workflow actions */}

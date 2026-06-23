@@ -42,18 +42,18 @@ const TechStackSection = () => {
   return (
     <section
       id="tech-stack"
-      className="py-24 bg-[#F8FAFC] border-t border-[#E2E8F0]"
+      className="py-28 bg-[#030303] border-t border-white/5"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#0F172A]/5 border border-[#0F172A]/10 text-[10px] font-bold text-[#0F172A] uppercase tracking-wider mb-4">
+        <div className="text-center mb-20">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold text-[#E8602E] uppercase tracking-widest mb-4">
             Platform Architecture
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight mb-3">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
             Technology Stack
           </h2>
-          <p className="text-sm text-[#64748B] max-w-xl mx-auto leading-relaxed">
+          <p className="text-sm text-white/50 max-w-xl mx-auto leading-relaxed">
             Engineered with modern, highly performant libraries and frameworks for robust operational stability.
           </p>
         </div>
@@ -63,18 +63,18 @@ const TechStackSection = () => {
           {technologies.map((tech) => (
             <div
               key={tech.name}
-              className="flex flex-col p-5 rounded-lg border border-[#E2E8F0] bg-white transition-all duration-300 hover:shadow-sm"
+              className="flex flex-col p-5 rounded-xl border border-white/5 bg-[#0B0B0B] hover:border-white/10 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,255,255,0.01)] group"
             >
-              <div className="w-8 h-8 rounded bg-[#0F172A]/5 text-[#0F172A] flex items-center justify-center mb-4">
+              <div className="w-8 h-8 rounded-lg bg-white/5 text-[#E8602E] border border-white/10 flex items-center justify-center mb-4 transition-transform group-hover:scale-105">
                 <Shield className="h-4 w-4" />
               </div>
-              <h3 className="text-xs font-bold text-[#0F172A] mb-1">
+              <h3 className="text-xs font-bold text-white mb-1 group-hover:text-[#E8602E] transition-colors">
                 {tech.name}
               </h3>
-              <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wide mb-2">
+              <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-2">
                 {tech.role}
               </p>
-              <p className="text-[10px] text-[#94A3B8] leading-normal">
+              <p className="text-[10px] text-white/30 leading-normal">
                 {tech.detail}
               </p>
             </div>

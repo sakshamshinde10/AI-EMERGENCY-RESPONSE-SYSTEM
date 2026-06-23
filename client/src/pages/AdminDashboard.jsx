@@ -38,6 +38,9 @@ import {
   Eye,
   RefreshCw,
   AlertTriangle,
+  PhoneCall,
+  Globe,
+  Mic,
 } from "lucide-react";
 
 // Professional Government Colors
@@ -103,6 +106,7 @@ const AdminDashboard = () => {
   const [selectedDept, setSelectedDept] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
+  const [selectedSource, setSelectedSource] = useState("All");
 
   const socketRef = useRef(null);
 
@@ -201,8 +205,9 @@ const AdminDashboard = () => {
     const matchesDept = selectedDept === "All" || item.department?.toLowerCase() === selectedDept.toLowerCase();
     const matchesPriority = selectedPriority === "All" || item.priority?.toLowerCase() === selectedPriority.toLowerCase();
     const matchesStatus = selectedStatus === "All" || item.status?.toLowerCase() === selectedStatus.toLowerCase();
+    const matchesSource = selectedSource === "All" || (item.source || "web") === selectedSource;
 
-    return matchesSearch && matchesDept && matchesPriority && matchesStatus;
+    return matchesSearch && matchesDept && matchesPriority && matchesStatus && matchesSource;
   });
 
   // Chart 1: Department Distribution
@@ -543,6 +548,20 @@ const AdminDashboard = () => {
                 <option value="Resolved">Resolved</option>
               </select>
             </div>
+
+            {/* Source Filter */}
+            <div className="flex items-center gap-2">
+              <PhoneCall className="h-3.5 w-3.5 text-[#64748B] shrink-0" />
+              <select
+                value={selectedSource}
+                onChange={(e) => setSelectedSource(e.target.value)}
+                className="w-full h-9 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-1 text-xs text-[#0F172A] outline-none focus:ring-2 focus:ring-[#0F172A]/20 focus:border-[#0F172A]"
+              >
+                <option value="All">All Sources</option>
+                <option value="web">🌐 Web Form</option>
+                <option value="call">📞 Phone Call</option>
+              </select>
+            </div>
           </div>
         </CardHeader>
 
@@ -556,6 +575,7 @@ const AdminDashboard = () => {
                 <th className="p-4 font-bold text-[10px]">Department</th>
                 <th className="p-4 font-bold text-[10px]">Priority</th>
                 <th className="p-4 font-bold text-[10px]">Status</th>
+                <th className="p-4 font-bold text-[10px]">Source</th>
                 <th className="p-4 font-bold text-[10px]">Time Logged</th>
                 <th className="p-4 font-bold text-[10px] text-right">Actions</th>
               </tr>
@@ -614,6 +634,17 @@ const AdminDashboard = () => {
                         day: "numeric",
                       })}
                     </td>
+                    <td className="p-4">
+                      {item.source === "call" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+                          <PhoneCall className="h-2.5 w-2.5" /> Call
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                          <Globe className="h-2.5 w-2.5" /> Web
+                        </span>
+                      )}
+                    </td>
                     <td className="p-4 text-right">
                       <Button
                         variant="outline"
@@ -629,7 +660,7 @@ const AdminDashboard = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-[#64748B] font-medium text-xs">
+                  <td colSpan={8} className="p-8 text-center text-[#64748B] font-medium text-xs">
                     <div className="flex flex-col items-center gap-1.5">
                       <Inbox className="h-6 w-6 text-[#94A3B8]" />
                       No matching incident logs found in database.
@@ -788,9 +819,31 @@ const AdminDashboard = () => {
               <div>
                 <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1.5">Incident Description</span>
                 <p className="p-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-xs leading-relaxed text-[#0F172A]">
-                  {selectedCase.description}
+                  {selectedCase.message || selectedCase.description}
                 </p>
               </div>
+
+              {/* Voice Recording Playback — call emergencies only */}
+              {selectedCase.source === "call" && (
+                <div className="border border-violet-200 rounded-lg overflow-hidden">
+                  <div className="bg-violet-600 text-white px-4 py-2 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Mic className="h-3.5 w-3.5" /> Caller Voice Recording
+                    </span>
+                    <span className="text-[9px] font-bold bg-white/20 px-2 py-0.5 rounded-full">PHONE CALL</span>
+                  </div>
+                  <div className="p-4 bg-violet-50">
+                    {selectedCase.recordingUrl ? (
+                      <audio controls src={selectedCase.recordingUrl} className="w-full" />
+                    ) : (
+                      <p className="text-xs text-violet-600 font-semibold">Recording is being processed... Please check back shortly.</p>
+                    )}
+                    <p className="text-[10px] text-violet-500 mt-2">
+                      Caller number: <strong>{selectedCase.callerPhone || selectedCase.phone}</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* AI Analysis Summary */}
               {selectedCase.aiAnalysis && (

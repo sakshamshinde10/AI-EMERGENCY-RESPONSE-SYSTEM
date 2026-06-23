@@ -4,12 +4,12 @@ const emergencySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      default: "Caller",  // For phone calls where name is unknown
     },
 
     phone: {
       type: String,
-      required: true,
+      default: "Unknown",
     },
 
     message: {
@@ -66,6 +66,28 @@ const emergencySchema = new mongoose.Schema(
     longitude: {
       type: Number,
       default: null,
+    },
+
+    // ── Call System Fields (Exotel) ─────────────────────────────
+    source: {
+      type: String,
+      enum: ["web", "call"],
+      default: "web",
+    },
+
+    callSid: {
+      type: String,
+      default: null,  // Exotel Call SID for tracking
+    },
+
+    recordingUrl: {
+      type: String,
+      default: null,  // URL of the Exotel voice recording (MP3)
+    },
+
+    callerPhone: {
+      type: String,
+      default: null,  // Normalised caller phone number (e.g. +919876543210)
     },
   },
   {

@@ -245,7 +245,7 @@ const DashboardLayout = ({ children, title, headerActions }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex">
+    <div className="min-h-screen bg-[#030303] text-white flex">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -256,7 +256,7 @@ const DashboardLayout = ({ children, title, headerActions }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0F172A] text-white flex flex-col transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#000000] border-r border-white/5 text-white flex flex-col transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -386,7 +386,7 @@ const DashboardLayout = ({ children, title, headerActions }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 h-14 bg-white border-b border-[#E2E8F0] flex items-center px-4 lg:px-6 gap-4">
+        <header className="sticky top-0 z-30 h-14 bg-black/60 border-b border-white/5 backdrop-blur-md flex items-center px-4 lg:px-6 gap-4">
           {/* Mobile menu button */}
           <button
             onClick={() => setSidebarOpen(true)}
@@ -396,14 +396,14 @@ const DashboardLayout = ({ children, title, headerActions }) => {
           </button>
 
           {/* Page title */}
-          <h2 className="text-base font-bold text-[#0F172A] truncate">
+          <h2 className="text-base font-bold text-white truncate">
             {title || "Dashboard"}
           </h2>
 
           <div className="ml-auto flex items-center gap-3">
             {/* Connection indicator */}
-            <div className="flex items-center gap-1.5 text-xs text-[#64748B] mr-1">
-              <Radio className="h-3.5 w-3.5 text-[#16A34A]" />
+            <div className="flex items-center gap-1.5 text-xs text-white/60 mr-1">
+              <Radio className="h-3.5 w-3.5 text-emerald-500" />
               <span className="hidden sm:inline font-medium">System Active</span>
             </div>
             {headerActions}

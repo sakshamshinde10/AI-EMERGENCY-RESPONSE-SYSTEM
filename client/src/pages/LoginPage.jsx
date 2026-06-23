@@ -45,56 +45,59 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4">
-      {/* Background pattern */}
-      <div
-        className="fixed inset-0 opacity-[0.03]"
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 relative overflow-hidden font-sans selection:bg-[#E8602E] selection:text-white">
+      {/* Decorative Blur Blobs */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[#E8602E]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Grid background with radial mask */}
+      <div 
+        className="absolute inset-0 hero-grid opacity-30 pointer-events-none" 
         style={{
-          backgroundImage:
-            "linear-gradient(#0F172A 1px, transparent 1px), linear-gradient(90deg, #0F172A 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
+          WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 80%)',
+          maskImage: 'radial-gradient(circle at center, black 30%, transparent 80%)',
         }}
       />
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md z-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-12 h-12 bg-[#0F172A] rounded-xl flex items-center justify-center">
-              <Shield className="h-6 w-6 text-white" />
+          <Link to="/" className="inline-flex items-center gap-2 mb-5 group">
+            <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center group-hover:border-[#E8602E]/50 group-hover:shadow-[0_0_15px_rgba(232,96,46,0.3)] transition-all">
+              <Shield className="h-6 w-6 text-[#E8602E]" />
             </div>
           </Link>
-          <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">
             Emergency Command Platform
           </h1>
-          <p className="text-sm text-[#64748B] mt-1">
-            Authorized Department Personnel Only
+          <p className="text-xs text-white/40 mt-1.5 uppercase tracking-widest font-bold">
+            Authorized Personnel Only
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-sm p-8">
-          <h2 className="text-lg font-bold text-[#0F172A] mb-1">
+        <div className="bg-[#0B0B0B] rounded-2xl border border-white/5 shadow-2xl p-8">
+          <h2 className="text-lg font-bold text-white mb-1">
             Department Login
           </h2>
-          <p className="text-sm text-[#64748B] mb-6">
+          <p className="text-xs text-white/50 mb-6">
             Enter your credentials to access your department dashboard
           </p>
 
           {/* Error Alert */}
           {error && (
-            <div className="flex items-center gap-2 p-3 mb-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="flex items-center gap-2 p-3.5 mb-5 bg-red-950/40 border border-red-900/30 rounded-lg text-red-400 text-xs">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span className="font-medium">{error}</span>
+              <span className="font-semibold">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Username */}
             <div>
               <label
                 htmlFor="login-username"
-                className="block text-sm font-semibold text-[#0F172A] mb-1.5"
+                className="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2"
               >
                 Username
               </label>
@@ -105,7 +108,7 @@ const LoginPage = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 autoComplete="username"
-                className="w-full px-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0F172A]/20 focus:border-[#0F172A] transition-all"
+                className="w-full px-4 py-2.5 bg-[#121212] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#E8602E]/60 focus:ring-0 transition-all"
               />
             </div>
 
@@ -113,7 +116,7 @@ const LoginPage = () => {
             <div>
               <label
                 htmlFor="login-password"
-                className="block text-sm font-semibold text-[#0F172A] mb-1.5"
+                className="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2"
               >
                 Password
               </label>
@@ -125,12 +128,12 @@ const LoginPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="w-full px-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0F172A]/20 focus:border-[#0F172A] transition-all pr-10"
+                  className="w-full px-4 py-2.5 bg-[#121212] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#E8602E]/60 focus:ring-0 transition-all pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -146,7 +149,7 @@ const LoginPage = () => {
               id="login-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-[#0F172A] hover:bg-[#1E293B] text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[#E8602E] hover:bg-[#D74E1D] hover:shadow-[0_0_25px_rgba(232,96,46,0.4)] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -160,22 +163,21 @@ const LoginPage = () => {
           </form>
 
           {/* Security Notice */}
-          <div className="mt-6 p-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg">
-            <p className="text-[11px] text-[#64748B] leading-relaxed">
-              <span className="font-bold text-[#0F172A]">
+          <div className="mt-6 p-3 bg-white/5 border border-white/5 rounded-lg">
+            <p className="text-[10px] text-white/40 leading-relaxed">
+              <span className="font-bold text-white/60">
                 Security Notice:
               </span>{" "}
               This is a restricted government system. Unauthorized access
-              attempts are logged and may result in legal action. All sessions
-              are monitored.
+              attempts are logged and may result in legal prosecution.
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6">
-          <p className="text-xs text-[#94A3B8]">
-            Government Emergency Command Platform © {new Date().getFullYear()}
+        <div className="text-center mt-8">
+          <p className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">
+            Government Emergency Command &bull; &copy; {new Date().getFullYear()}
           </p>
         </div>
       </div>

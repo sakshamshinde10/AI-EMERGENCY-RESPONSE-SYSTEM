@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -7,7 +8,7 @@
 /* ===== Design System: Government Emergency Command Platform ===== */
 
 @theme {
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 
   /* Government color palette */
   --color-primary-50: #f8fafc;
@@ -32,6 +33,12 @@
   --color-surface-dark: #0f172a;
   --color-surface-dark-2: #1e293b;
   --color-surface-dark-3: #334155;
+
+  --color-accent: #E8602E;
+  --color-accent-hover: #D74E1D;
+  --color-bg-dark: #000000;
+  --color-surface-dark-custom: #0B0B0B;
+  --color-surface-dark-2-custom: #0E0E0E;
 }
 
 /* ===== Base Styles ===== */
@@ -183,7 +190,7 @@ body {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'IBM Plex Sans', sans-serif;
+  --font-sans: 'Manrope', sans-serif;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);

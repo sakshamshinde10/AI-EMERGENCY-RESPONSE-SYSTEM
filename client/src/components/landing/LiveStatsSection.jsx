@@ -27,13 +27,10 @@ const StatCard = ({ icon, label, value, color, colorBg, delay, isVisible }) => {
 
   return (
     <div
-      className={`group relative rounded-2xl p-6 transition-all duration-500 hover:scale-105 hover:-translate-y-1 ${
+      className={`group relative rounded-2xl p-6 transition-all duration-500 hover:scale-[1.03] hover:-translate-y-1 bg-[#0B0B0B] border border-white/5 shadow-2xl shadow-black/40 ${
         isVisible ? 'animate-fade-in-up' : 'opacity-0'
       }`}
       style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        boxShadow: `0 4px 24px var(--shadow-color)`,
         animationDelay: `${delay}ms`,
       }}
     >
@@ -51,16 +48,10 @@ const StatCard = ({ icon, label, value, color, colorBg, delay, isVisible }) => {
           {icon}
         </div>
         <div>
-          <p
-            className="text-sm font-medium mb-1"
-            style={{ color: 'var(--text-secondary)' }}
-          >
+          <p className="text-sm font-medium mb-1 text-white/50">
             {label}
           </p>
-          <p
-            className="text-3xl font-bold tracking-tight"
-            style={{ color: 'var(--text-primary)' }}
-          >
+          <p className="text-3xl font-bold tracking-tight text-white">
             {displayValue.toLocaleString()}
           </p>
         </div>
@@ -70,7 +61,7 @@ const StatCard = ({ icon, label, value, color, colorBg, delay, isVisible }) => {
       <div
         className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
         style={{
-          boxShadow: `0 8px 40px ${color}20`,
+          boxShadow: `0 8px 40px ${color}15`,
         }}
       />
     </div>
@@ -80,54 +71,49 @@ const StatCard = ({ icon, label, value, color, colorBg, delay, isVisible }) => {
 const LiveStatsSection = () => {
   const [ref, isVisible] = useScrollAnimation();
 
-  // Simulated live data — in production, connect to your Socket.io backend
+  // Simulated live data
   const departmentStats = [
-    { icon: '🚓', label: 'Police Cases', value: 1247, color: '#3b82f6', colorBg: 'rgba(59,130,246,0.1)' },
-    { icon: '🚒', label: 'Fire Cases', value: 389, color: '#ef4444', colorBg: 'rgba(239,68,68,0.1)' },
-    { icon: '🏥', label: 'Hospital Cases', value: 892, color: '#10b981', colorBg: 'rgba(16,185,129,0.1)' },
+    { icon: '🚓', label: 'Police Cases Assigned', value: 1247, color: '#3b82f6', colorBg: 'rgba(59,130,246,0.05)' },
+    { icon: '🚒', label: 'Fire Incident Records', value: 389, color: '#ef4444', colorBg: 'rgba(239,68,68,0.05)' },
+    { icon: '🏥', label: 'Hospital Triage Cases', value: 892, color: '#10b981', colorBg: 'rgba(16,185,129,0.05)' },
   ];
 
   const statusStats = [
-    { icon: '🟡', label: 'Pending Cases', value: 156, color: '#f59e0b', colorBg: 'rgba(245,158,11,0.1)' },
-    { icon: '🔵', label: 'In Progress Cases', value: 234, color: '#3b82f6', colorBg: 'rgba(59,130,246,0.1)' },
-    { icon: '🟢', label: 'Resolved Cases', value: 2138, color: '#10b981', colorBg: 'rgba(16,185,129,0.1)' },
+    { icon: '🟡', label: 'Pending Dispatch Verification', value: 156, color: '#f59e0b', colorBg: 'rgba(245,158,11,0.05)' },
+    { icon: '🔵', label: 'Active Response In Progress', value: 234, color: '#3b82f6', colorBg: 'rgba(59,130,246,0.05)' },
+    { icon: '🟢', label: 'Successfully Mitigated & Closed', value: 2138, color: '#10b981', colorBg: 'rgba(16,185,129,0.05)' },
   ];
 
   return (
     <section
       id="stats"
       ref={ref}
-      className="py-24 transition-theme"
-      style={{ background: 'var(--bg-secondary)' }}
+      className="py-28 bg-[#030303] border-y border-white/5 relative"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,96,46,0.02)_0%,transparent_60%)] pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
-        <div className={`text-center mb-16 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
+        <div className={`text-center mb-20 ${isVisible ? 'animate-fade-in-up' : 'opacity-0'}`}>
           <div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase mb-4"
             style={{
-              background: 'rgba(59,130,246,0.1)',
-              color: '#3b82f6',
-              border: '1px solid rgba(59,130,246,0.2)',
+              background: 'rgba(232,96,46,0.08)',
+              color: '#E8602E',
+              border: '1px solid rgba(232,96,46,0.15)',
             }}
           >
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+              <span className="absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
             </span>
-            Live Statistics
+            Live Command Statistics
           </div>
-          <h2
-            className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            Real-Time Emergency Data
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-4 text-white">
+            Real-Time Response Telemetry
           </h2>
-          <p
-            className="text-lg max-w-2xl mx-auto"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            Monitor emergency response metrics across all departments in real-time
+          <p className="text-sm max-w-xl mx-auto text-white/50 leading-relaxed">
+            Monitor emergency response metrics and priority resolution cases across municipal command systems.
           </p>
         </div>
 

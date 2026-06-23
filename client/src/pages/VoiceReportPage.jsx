@@ -7,9 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Shield,
   Mic,
-  MicOff,
   Square,
-  Globe,
   Phone,
   User,
   Send,
@@ -17,21 +15,27 @@ import {
   AlertTriangle,
   Loader2,
   ArrowLeft,
-  Languages,
   Volume2,
   FileText,
   RotateCcw,
+  Zap,
 } from "lucide-react";
 
-const LANGUAGES = [
-  { code: "en-IN", label: "English", flag: "EN", id: "English" },
-  { code: "hi-IN", label: "हिन्दी", flag: "HI", id: "Hindi" },
-  { code: "mr-IN", label: "मराठी", flag: "MR", id: "Marathi" },
-];
+// Detect Devanagari script (Hindi + Marathi)
+const hasDevanagari = (text) => /[\u0900-\u097F]/.test(text);
+
+// Map browser locale → Web Speech API lang code
+const getBrowserLang = () => {
+  const nav = navigator.language || navigator.userLanguage || "en";
+  if (nav.startsWith("hi")) return { code: "hi-IN", label: "हिन्दी", id: "Hindi" };
+  if (nav.startsWith("mr")) return { code: "mr-IN", label: "मराठी", id: "Marathi" };
+  return { code: "en-IN", label: "English", id: "English" };
+};
 
 const VoiceReportPage = () => {
-  // Language
-  const [selectedLang, setSelectedLang] = useState(LANGUAGES[0]);
+  // Auto-detected language
+  const [detectedLang, setDetectedLang] = useState(getBrowserLang());
+  const detectedLangRef = useRef(getBrowserLang());
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -172,10 +176,12 @@ const VoiceReportPage = () => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.lang = selectedLang.code;
+    recognition.lang = detectedLangRef.current.code;
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
+
+    let langSwitched = false;
 
     recognition.onresult = (event) => {
       let sessionFinal = "";
@@ -193,6 +199,37 @@ const VoiceReportPage = () => {
       const fullText = (finalizedTranscriptRef.current + " " + sessionFinal).trim();
       setTranscript(fullText);
       setInterimText(interim);
+
+      // Auto-detect language from script on first speech chunk
+      const sampleText = sessionFinal || interim;
+      if (!langSwitched && sampleText.trim().length > 2) {
+        langSwitched = true;
+        if (hasDevanagari(sampleText)) {
+          // Devanagari detected — check if it's Marathi or Hindi
+          // Marathi marker words (basic heuristic)
+          const isMrHint = /माझ|आहे|आग|मी|होत|कर|आम्ही|झाल/.test(sampleText);
+          const newLang = isMrHint
+            ? { code: "mr-IN", label: "मराठी", id: "Marathi" }
+            : { code: "hi-IN", label: "हिन्दी", id: "Hindi" };
+          if (detectedLangRef.current.code !== newLang.code) {
+            detectedLangRef.current = newLang;
+            setDetectedLang(newLang);
+            // Restart recognition with correct lang for next chunks
+            try {
+              recognitionRef.current.stop();
+            } catch (_) {}
+          }
+        } else {
+          const engLang = { code: "en-IN", label: "English", id: "English" };
+          if (detectedLangRef.current.code !== "en-IN") {
+            detectedLangRef.current = engLang;
+            setDetectedLang(engLang);
+            try {
+              recognitionRef.current.stop();
+            } catch (_) {}
+          }
+        }
+      }
     };
 
     recognition.onerror = (event) => {
@@ -214,10 +251,19 @@ const VoiceReportPage = () => {
       // Save the accumulated text from this session
       finalizedTranscriptRef.current = transcriptRef.current;
 
-      // Auto-restart if still recording (handles browser auto-stop)
+      // Auto-restart with updated lang if still recording
       if (recognitionRef.current && isRecordingRef.current) {
         try {
-          recognitionRef.current.start();
+          const newRec = new SpeechRecognition();
+          newRec.lang = detectedLangRef.current.code;
+          newRec.continuous = true;
+          newRec.interimResults = true;
+          newRec.maxAlternatives = 1;
+          newRec.onresult = recognition.onresult;
+          newRec.onerror = recognition.onerror;
+          newRec.onend = recognition.onend;
+          recognitionRef.current = newRec;
+          newRec.start();
         } catch (e) {
           console.log("Recognition restart skipped:", e.message);
         }
@@ -238,7 +284,7 @@ const VoiceReportPage = () => {
       setIsRecording(false);
       isRecordingRef.current = false;
     }
-  }, [selectedLang]);
+  }, []);
 
   const stopRecording = useCallback(() => {
     setIsRecording(false);
@@ -271,8 +317,13 @@ const VoiceReportPage = () => {
       setError("Please enter your name.");
       return;
     }
-    if (!phone.trim()) {
+    const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
+    if (!cleanPhone) {
       setError("Please enter your phone number.");
+      return;
+    }
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      setError("Phone number must be exactly 10 digits.");
       return;
     }
     if (!finalMessage) {
@@ -286,9 +337,9 @@ const VoiceReportPage = () => {
     try {
       const response = await createEmergency({
         name: name.trim(),
-        phone: phone.trim(),
+        phone: phone.replace(/[\s\-\(\)]/g, ""),
         message: finalMessage,
-        language: selectedLang.id,
+        language: detectedLangRef.current.id,
         latitude: coords.latitude,
         longitude: coords.longitude,
         clientAddress: clientLocationInfo.clientAddress,
@@ -322,7 +373,9 @@ const VoiceReportPage = () => {
     setSubmitted(false);
     setResult(null);
     setError("");
-    setSelectedLang(LANGUAGES[0]);
+    const defaultLang = getBrowserLang();
+    setDetectedLang(defaultLang);
+    detectedLangRef.current = defaultLang;
   };
 
   // --- SUCCESS SCREEN ---
@@ -368,7 +421,7 @@ const VoiceReportPage = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Language</span>
-                <span className="text-xs font-semibold text-[#0F172A]">{result.language || selectedLang.id}</span>
+                <span className="text-xs font-semibold text-[#0F172A]">{result.language || detectedLang.id}</span>
               </div>
               {result.address && (
                 <div className="flex items-start justify-between gap-4 pt-1 border-t border-[#E2E8F0]/40">
@@ -449,7 +502,7 @@ const VoiceReportPage = () => {
             Report an Emergency
           </h1>
           <p className="text-sm text-[#64748B] leading-relaxed">
-            Speak your emergency in English, Hindi, or Marathi. Our AI will classify and dispatch it to the right department.
+            Speak naturally in <strong>English, Hindi, or Marathi</strong> — language is detected automatically.
           </p>
         </div>
 
@@ -478,58 +531,22 @@ const VoiceReportPage = () => {
         )}
 
         <div className="space-y-6">
-          {/* ── STEP 1: Language Selection ── */}
+          {/* ── STEP 1: Voice Recording ── */}
           <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">1</span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-white">1</span>
+                </div>
+                <h2 className="text-sm font-bold text-[#0F172A]">Record Your Emergency</h2>
+                <Volume2 className="h-4 w-4 text-[#94A3B8]" />
               </div>
-              <h2 className="text-sm font-bold text-[#0F172A]">Select Language</h2>
-              <Languages className="h-4 w-4 text-[#94A3B8] ml-1" />
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {LANGUAGES.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    if (isRecording) stopRecording();
-                    setSelectedLang(lang);
-                  }}
-                  className={`relative flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    selectedLang.code === lang.code
-                      ? "border-[#2563EB] bg-[#2563EB]/5 shadow-sm"
-                      : "border-[#E2E8F0] bg-[#FAFBFC] hover:border-[#CBD5E1] hover:bg-white"
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black ${
-                    selectedLang.code === lang.code
-                      ? "bg-[#2563EB] text-white"
-                      : "bg-[#F1F5F9] text-[#64748B]"
-                  }`}>
-                    {lang.flag}
-                  </div>
-                  <span className={`text-xs font-bold ${
-                    selectedLang.code === lang.code ? "text-[#2563EB]" : "text-[#475569]"
-                  }`}>
-                    {lang.label}
-                  </span>
-                  {selectedLang.code === lang.code && (
-                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#2563EB]" />
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ── STEP 2: Voice Recording ── */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">2</span>
+              {/* Auto-detected language badge */}
+              <div className="flex items-center gap-1.5 bg-[#F0F9FF] border border-[#BAE6FD] rounded-lg px-2.5 py-1">
+                <Zap className="h-3 w-3 text-[#0284C7]" />
+                <span className="text-[10px] font-bold text-[#0284C7] uppercase tracking-wide">Auto</span>
+                <span className="text-[10px] font-semibold text-[#0369A1]">{detectedLang.label}</span>
               </div>
-              <h2 className="text-sm font-bold text-[#0F172A]">Record Your Emergency</h2>
-              <Volume2 className="h-4 w-4 text-[#94A3B8] ml-1" />
             </div>
 
             {/* Recording Controls */}
@@ -563,12 +580,12 @@ const VoiceReportPage = () => {
                 {isRecording ? (
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    Recording in {selectedLang.label}... Tap to stop
+                    Listening in {detectedLang.label}... Tap to stop
                   </span>
                 ) : transcript ? (
                   "Tap to record more"
                 ) : (
-                  "Tap to start recording"
+                  "Tap mic and speak in any language"
                 )}
               </p>
             </div>
@@ -601,11 +618,11 @@ const VoiceReportPage = () => {
             )}
           </div>
 
-          {/* ── STEP 3: Review & Edit ── */}
+          {/* ── STEP 2: Review & Edit ── */}
           <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">3</span>
+                <span className="text-[10px] font-bold text-white">2</span>
               </div>
               <h2 className="text-sm font-bold text-[#0F172A]">Review & Edit Transcript</h2>
             </div>
@@ -613,13 +630,7 @@ const VoiceReportPage = () => {
             <textarea
               value={editedTranscript}
               onChange={(e) => setEditedTranscript(e.target.value)}
-              placeholder={
-                selectedLang.code === "hi-IN"
-                  ? "यहाँ अपनी आपातकालीन स्थिति टाइप करें या ऊपर रिकॉर्ड करें..."
-                  : selectedLang.code === "mr-IN"
-                  ? "तुमची आणीबाणी येथे टाइप करा किंवा वर रेकॉर्ड करा..."
-                  : "Type your emergency here or record it above..."
-              }
+              placeholder="Type your emergency here or record it above..."
               rows={4}
               className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#0F172A] placeholder:text-[#CBD5E1] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none resize-none leading-relaxed"
             />
@@ -628,11 +639,11 @@ const VoiceReportPage = () => {
             </p>
           </div>
 
-          {/* ── STEP 4: Contact Info & Submit ── */}
+          {/* ── STEP 3: Contact Info & Submit ── */}
           <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">4</span>
+                <span className="text-[10px] font-bold text-white">3</span>
               </div>
               <h2 className="text-sm font-bold text-[#0F172A]">Contact Information</h2>
             </div>
@@ -655,17 +666,34 @@ const VoiceReportPage = () => {
 
               <div>
                 <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1.5">
-                  Phone Number *
+                  Phone Number * <span className="normal-case text-[#CBD5E1] font-normal">(10 digits)</span>
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
                   <Input
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 XXXXX XXXXX"
+                    onChange={(e) => {
+                      // Only allow digits, max 10
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setPhone(digits);
+                    }}
+                    placeholder="10-digit mobile number"
                     type="tel"
-                    className="pl-9 h-10 text-sm bg-[#F8FAFC] border-[#E2E8F0] focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                    inputMode="numeric"
+                    maxLength={10}
+                    className={`pl-9 h-10 text-sm bg-[#F8FAFC] border-[#E2E8F0] focus:ring-[#2563EB]/20 focus:border-[#2563EB] ${
+                      phone.length > 0 && phone.length < 10 ? "border-amber-400 focus:border-amber-400" : ""
+                    } ${
+                      phone.length === 10 ? "border-green-500 focus:border-green-500" : ""
+                    }`}
                   />
+                  {phone.length > 0 && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                      phone.length === 10 ? "text-green-500" : "text-amber-500"
+                    }`}>
+                      {phone.length}/10
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
