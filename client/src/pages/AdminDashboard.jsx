@@ -151,10 +151,22 @@ const AdminDashboard = () => {
         duration: 8000,
       });
 
+      // Update state immediately for instant feedback
+      setAllCases((prevCases) => {
+        if (prevCases.some((c) => c._id === emergency._id)) return prevCases;
+        return [emergency, ...prevCases];
+      });
+
       fetchDashboardData();
     });
 
-    socket.on("status-updated", () => {
+    socket.on("status-updated", (updated) => {
+      // Update state immediately
+      if (updated && updated._id) {
+        setAllCases((prevCases) =>
+          prevCases.map((c) => (c._id === updated._id ? updated : c))
+        );
+      }
       fetchDashboardData();
     });
 

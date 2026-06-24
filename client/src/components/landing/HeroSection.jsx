@@ -12,8 +12,8 @@ const HeroSection = () => {
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[450px] h-[450px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none animate-pulse duration-[8000ms]" />
 
       {/* Grid background with radial mask */}
-      <div 
-        className="absolute inset-0 hero-grid opacity-40 pointer-events-none" 
+      <div
+        className="absolute inset-0 hero-grid opacity-40 pointer-events-none"
         style={{
           WebkitMaskImage: 'radial-gradient(circle at center, black 30%, transparent 80%)',
           maskImage: 'radial-gradient(circle at center, black 30%, transparent 80%)',
@@ -47,9 +47,6 @@ const HeroSection = () => {
         </p>
 
         {/* Description */}
-        <p className="animate-fade-in-up delay-200 text-xs sm:text-sm text-white/40 max-w-2xl mx-auto mb-12 leading-relaxed">
-          Integrated with Exotel voicebot streams and Socket.io channels to bridge the gap between citizens in need and emergency response units within milliseconds.
-        </p>
 
         {/* CTA Buttons */}
         <div className="animate-fade-in-up delay-300 flex flex-col sm:flex-row gap-4 justify-center items-center">

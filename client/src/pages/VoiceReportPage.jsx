@@ -381,77 +381,90 @@ const VoiceReportPage = () => {
   // --- SUCCESS SCREEN ---
   if (submitted && result) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-        <div className="w-full max-w-lg">
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-sm p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#16A34A]/10 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="h-8 w-8 text-[#16A34A]" />
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-[#E8602E] selection:text-white">
+        {/* Decorative Blur Blobs */}
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E8602E]/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Grid background with radial mask */}
+        <div 
+          className="absolute inset-0 hero-grid opacity-30 pointer-events-none" 
+          style={{
+            WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
+            maskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
+          }}
+        />
+
+        <div className="relative w-full max-w-lg z-10">
+          <div className="bg-[#0B0B0B]/90 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl p-8 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="h-8 w-8 text-emerald-500" />
             </div>
 
-            <h2 className="text-xl font-extrabold text-[#0F172A] mb-2">
+            <h2 className="text-xl font-extrabold text-white mb-2">
               Emergency Report Filed
             </h2>
-            <p className="text-sm text-[#64748B] mb-6">
+            <p className="text-sm text-white/60 mb-6">
               Your report has been classified and dispatched to the appropriate department.
             </p>
 
             {/* Classification Result */}
-            <div className="bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] p-5 mb-6 text-left space-y-3">
+            <div className="bg-white/5 rounded-xl border border-white/5 p-5 mb-6 text-left space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Department</span>
-                <Badge className={`text-xs font-bold px-2.5 py-0.5 ${
-                  result.department === "Police" ? "bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/30" :
-                  result.department === "Fire Brigade" ? "bg-[#DC2626]/10 text-[#DC2626] border-[#DC2626]/30" :
-                  result.department === "Hospital" ? "bg-[#16A34A]/10 text-[#16A34A] border-[#16A34A]/30" :
-                  "bg-[#64748B]/10 text-[#64748B] border-[#64748B]/30"
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Department</span>
+                <Badge className={`text-xs font-bold px-2.5 py-0.5 border ${
+                  result.department === "Police" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" :
+                  result.department === "Fire Brigade" ? "bg-red-600/20 text-red-400 border-red-500/30" :
+                  result.department === "Hospital" ? "bg-green-600/20 text-green-400 border-green-500/30" :
+                  "bg-white/10 text-white/70 border-white/20"
                 }`} variant="outline">
                   {result.department}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Priority</span>
-                <Badge className={`text-xs font-bold px-2.5 py-0.5 ${
-                  result.priority === "Critical" ? "bg-red-600/10 text-red-600 border-red-600/30" :
-                  result.priority === "High" ? "bg-orange-500/10 text-orange-500 border-orange-500/30" :
-                  result.priority === "Medium" ? "bg-amber-500/10 text-amber-500 border-amber-500/30" :
-                  "bg-blue-600/10 text-blue-600 border-blue-600/30"
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Priority</span>
+                <Badge className={`text-xs font-bold px-2.5 py-0.5 border ${
+                  result.priority === "Critical" ? "bg-red-600/20 text-red-400 border-red-500/30 animate-pulse" :
+                  result.priority === "High" ? "bg-orange-500/20 text-orange-400 border-orange-500/30" :
+                  result.priority === "Medium" ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
+                  "bg-blue-600/20 text-blue-400 border-blue-500/30"
                 }`} variant="outline">
                   {result.priority}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Language</span>
-                <span className="text-xs font-semibold text-[#0F172A]">{result.language || detectedLang.id}</span>
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Language</span>
+                <span className="text-xs font-semibold text-white/90">{result.language || detectedLang.id}</span>
               </div>
               {result.address && (
-                <div className="flex items-start justify-between gap-4 pt-1 border-t border-[#E2E8F0]/40">
-                  <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider shrink-0 mt-0.5">Address</span>
-                  <span className="text-xs font-semibold text-[#0F172A] text-right">{result.address}</span>
+                <div className="flex items-start justify-between gap-4 pt-1.5 border-t border-white/5">
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider shrink-0 mt-0.5">Address</span>
+                  <span className="text-xs font-semibold text-white/90 text-right">{result.address}</span>
                 </div>
               )}
               {result.landmark && (
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Landmark</span>
-                  <span className="text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-md">{result.landmark}</span>
+                <div className="flex items-center justify-between pt-1.5">
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Landmark</span>
+                  <span className="text-xs font-semibold text-purple-400 bg-purple-950/30 border border-purple-800/20 px-1.5 py-0.5 rounded-md">{result.landmark}</span>
                 </div>
               )}
-              <div className="pt-2 border-t border-[#E2E8F0]">
-                <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider block mb-1.5">Transcript</span>
-                <p className="text-xs text-[#475569] leading-relaxed">{result.message}</p>
+              <div className="pt-2.5 border-t border-white/5">
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">Transcript</span>
+                <p className="text-xs text-white/70 leading-relaxed">{result.message}</p>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={handleNewReport}
-                className="flex-1 bg-[#0F172A] hover:bg-[#1E293B] text-white font-bold text-xs h-10 gap-1.5"
+                className="flex-1 bg-[#E8602E] hover:bg-[#D74E1D] hover:shadow-[0_0_20px_rgba(232,96,46,0.4)] text-white font-bold text-xs h-10 gap-1.5 border-none transition-all cursor-pointer"
               >
                 <RotateCcw className="h-3.5 w-3.5" /> File Another Report
               </Button>
               <Link to="/" className="flex-1">
                 <Button
                   variant="outline"
-                  className="w-full border-[#E2E8F0] text-[#475569] font-bold text-xs h-10 gap-1.5"
+                  className="w-full border-white/10 bg-white/5 hover:bg-white/10 text-white/90 font-bold text-xs h-10 gap-1.5 transition-all text-white"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
                 </Button>
@@ -465,26 +478,39 @@ const VoiceReportPage = () => {
 
   // --- MAIN FORM ---
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-black text-white relative overflow-hidden font-sans selection:bg-[#E8602E] selection:text-white">
+      {/* Decorative Blur Blobs */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E8602E]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+      {/* Grid background with radial mask */}
+      <div 
+        className="absolute inset-0 hero-grid opacity-30 pointer-events-none" 
+        style={{
+          WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
+          maskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
+        }}
+      />
+
       {/* Header Bar */}
-      <header className="bg-[#0F172A] border-b border-[#1E293B]">
+      <header className="relative z-20 bg-black/70 border-b border-white/10 backdrop-blur-md shadow-lg shadow-black/20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-              <Shield className="h-4 w-4 text-white" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white/5 border border-white/10 group-hover:border-[#E8602E]/50 group-hover:shadow-[0_0_15px_rgba(232,96,46,0.3)]">
+              <Shield className="h-4 w-4 text-[#E8602E]" />
             </div>
             <div>
-              <span className="text-sm font-bold text-white block leading-tight">
+              <span className="text-sm font-bold text-white block leading-tight group-hover:text-[#E8602E] transition-colors">
                 Emergency Command
               </span>
-              <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider">
+              <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">
                 Voice Report System
               </span>
             </div>
           </Link>
 
           <div className="flex items-center gap-2">
-            <Badge className="bg-red-600/20 text-red-400 border-red-600/40 text-[10px] font-bold px-2 py-0.5 animate-pulse" variant="outline">
+            <Badge className="bg-red-500/10 text-red-400 border-red-500/30 text-[10px] font-bold px-2 py-0.5 animate-pulse" variant="outline">
               <Phone className="h-3 w-3 mr-1" />
               112
             </Badge>
@@ -492,27 +518,27 @@ const VoiceReportPage = () => {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors mb-4">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white transition-colors mb-4">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
           </Link>
-          <h1 className="text-2xl font-extrabold text-[#0F172A] tracking-tight mb-2">
+          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-2">
             Report an Emergency
           </h1>
-          <p className="text-sm text-[#64748B] leading-relaxed">
+          <p className="text-sm text-white/60 leading-relaxed">
             Speak naturally in <strong>English, Hindi, or Marathi</strong> — language is detected automatically.
           </p>
         </div>
 
         {/* Unsupported Browser Warning */}
         {!isSupported && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-amber-800 mb-1">Browser Not Supported</p>
-              <p className="text-xs text-amber-700 leading-relaxed">
+              <p className="text-sm font-bold text-amber-400 mb-1">Browser Not Supported</p>
+              <p className="text-xs text-amber-300/80 leading-relaxed">
                 Voice recognition requires Chrome, Edge, or a Chromium-based browser.
                 You can still type your emergency in the transcript field below.
               </p>
@@ -522,30 +548,30 @@ const VoiceReportPage = () => {
 
         {/* Error Banner */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+          <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-red-800">{error}</p>
+              <p className="text-sm font-bold text-red-400">{error}</p>
             </div>
           </div>
         )}
 
         <div className="space-y-6">
           {/* ── STEP 1: Voice Recording ── */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
+          <div className="bg-[#0B0B0B]/85 backdrop-blur-md rounded-xl border border-white/5 p-6 hover:border-white/10 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
+                <div className="w-6 h-6 rounded-md bg-[#E8602E] flex items-center justify-center">
                   <span className="text-[10px] font-bold text-white">1</span>
                 </div>
-                <h2 className="text-sm font-bold text-[#0F172A]">Record Your Emergency</h2>
-                <Volume2 className="h-4 w-4 text-[#94A3B8]" />
+                <h2 className="text-sm font-bold text-white">Record Your Emergency</h2>
+                <Volume2 className="h-4 w-4 text-white/40" />
               </div>
               {/* Auto-detected language badge */}
-              <div className="flex items-center gap-1.5 bg-[#F0F9FF] border border-[#BAE6FD] rounded-lg px-2.5 py-1">
-                <Zap className="h-3 w-3 text-[#0284C7]" />
-                <span className="text-[10px] font-bold text-[#0284C7] uppercase tracking-wide">Auto</span>
-                <span className="text-[10px] font-semibold text-[#0369A1]">{detectedLang.label}</span>
+              <div className="flex items-center gap-1.5 bg-[#E8602E]/10 border border-[#E8602E]/30 rounded-lg px-2.5 py-1">
+                <Zap className="h-3 w-3 text-[#E8602E]" />
+                <span className="text-[10px] font-bold text-[#E8602E] uppercase tracking-wide">Auto</span>
+                <span className="text-[10px] font-semibold text-white/90">{detectedLang.label}</span>
               </div>
             </div>
 
@@ -557,8 +583,8 @@ const VoiceReportPage = () => {
                 disabled={!isSupported && !transcript}
                 className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                   isRecording
-                    ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/30"
-                    : "bg-[#0F172A] hover:bg-[#1E293B] shadow-lg shadow-[#0F172A]/20"
+                    ? "bg-red-600 hover:bg-red-700 shadow-[0_0_25px_rgba(220,38,38,0.5)]"
+                    : "bg-[#E8602E] hover:bg-[#D74E1D] shadow-[0_0_25px_rgba(232,96,46,0.4)]"
                 } disabled:opacity-40 disabled:cursor-not-allowed`}
               >
                 {isRecording ? (
@@ -570,13 +596,13 @@ const VoiceReportPage = () => {
                 {/* Pulse rings */}
                 {isRecording && (
                   <>
-                    <span className="absolute inset-0 rounded-full border-2 border-red-400 animate-ping opacity-30" />
-                    <span className="absolute -inset-2 rounded-full border border-red-300 animate-pulse opacity-20" />
+                    <span className="absolute inset-0 rounded-full border-2 border-red-400 animate-ping opacity-35" />
+                    <span className="absolute -inset-2 rounded-full border border-red-300 animate-pulse opacity-25" />
                   </>
                 )}
               </button>
 
-              <p className={`mt-4 text-xs font-bold ${isRecording ? "text-red-600" : "text-[#64748B]"}`}>
+              <p className={`mt-4 text-xs font-bold ${isRecording ? "text-red-400" : "text-white/60"}`}>
                 {isRecording ? (
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -592,15 +618,15 @@ const VoiceReportPage = () => {
 
             {/* Live Transcript Display */}
             {(transcript || interimText) && (
-              <div className="bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] p-4 mt-2">
+              <div className="bg-white/5 rounded-lg border border-white/5 p-4 mt-2">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <FileText className="h-3 w-3 text-[#94A3B8]" />
-                  <span className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">Live Transcript</span>
+                  <FileText className="h-3 w-3 text-white/40" />
+                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Live Transcript</span>
                 </div>
-                <p className="text-sm text-[#0F172A] leading-relaxed">
+                <p className="text-sm text-white/90 leading-relaxed">
                   {transcript}
                   {interimText && (
-                    <span className="text-[#94A3B8] italic"> {interimText}</span>
+                    <span className="text-white/40 italic"> {interimText}</span>
                   )}
                 </p>
               </div>
@@ -610,7 +636,7 @@ const VoiceReportPage = () => {
               <div className="flex justify-end mt-3">
                 <button
                   onClick={resetTranscript}
-                  className="text-[10px] font-bold text-[#94A3B8] hover:text-red-500 flex items-center gap-1 transition-colors cursor-pointer"
+                  className="text-[10px] font-bold text-white/40 hover:text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3" /> Clear transcript
                 </button>
@@ -619,12 +645,12 @@ const VoiceReportPage = () => {
           </div>
 
           {/* ── STEP 2: Review & Edit ── */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
+          <div className="bg-[#0B0B0B]/85 backdrop-blur-md rounded-xl border border-white/5 p-6 hover:border-white/10 transition-all duration-300">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-[#E8602E] flex items-center justify-center">
                 <span className="text-[10px] font-bold text-white">2</span>
               </div>
-              <h2 className="text-sm font-bold text-[#0F172A]">Review & Edit Transcript</h2>
+              <h2 className="text-sm font-bold text-white">Review & Edit Transcript</h2>
             </div>
 
             <textarea
@@ -632,44 +658,44 @@ const VoiceReportPage = () => {
               onChange={(e) => setEditedTranscript(e.target.value)}
               placeholder="Type your emergency here or record it above..."
               rows={4}
-              className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-3 text-sm text-[#0F172A] placeholder:text-[#CBD5E1] focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none resize-none leading-relaxed"
+              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white placeholder:text-white/20 focus:border-[#E8602E]/60 focus:ring-1 focus:ring-[#E8602E]/30 outline-none resize-none leading-relaxed transition-all"
             />
-            <p className="text-[10px] text-[#94A3B8] mt-1.5">
+            <p className="text-[10px] text-white/40 mt-1.5">
               You can edit the transcript to correct any errors before submitting.
             </p>
           </div>
 
           {/* ── STEP 3: Contact Info & Submit ── */}
-          <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
+          <div className="bg-[#0B0B0B]/85 backdrop-blur-md rounded-xl border border-white/5 p-6 hover:border-white/10 transition-all duration-300">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-md bg-[#0F172A] flex items-center justify-center">
+              <div className="w-6 h-6 rounded-md bg-[#E8602E] flex items-center justify-center">
                 <span className="text-[10px] font-bold text-white">3</span>
               </div>
-              <h2 className="text-sm font-bold text-[#0F172A]">Contact Information</h2>
+              <h2 className="text-sm font-bold text-white">Contact Information</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div>
-                <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1.5">
+                <label className="text-[10px] font-bold text-white/60 uppercase tracking-wider block mb-1.5">
                   Full Name *
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your name"
-                    className="pl-9 h-10 text-sm bg-[#F8FAFC] border-[#E2E8F0] focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                    className="pl-9 h-10 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#E8602E] focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#E8602E] transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mb-1.5">
-                  Phone Number * <span className="normal-case text-[#CBD5E1] font-normal">(10 digits)</span>
+                <label className="text-[10px] font-bold text-white/60 uppercase tracking-wider block mb-1.5">
+                  Phone Number * <span className="normal-case text-white/20 font-normal">(10 digits)</span>
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94A3B8]" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
                   <Input
                     value={phone}
                     onChange={(e) => {
@@ -681,10 +707,10 @@ const VoiceReportPage = () => {
                     type="tel"
                     inputMode="numeric"
                     maxLength={10}
-                    className={`pl-9 h-10 text-sm bg-[#F8FAFC] border-[#E2E8F0] focus:ring-[#2563EB]/20 focus:border-[#2563EB] ${
-                      phone.length > 0 && phone.length < 10 ? "border-amber-400 focus:border-amber-400" : ""
+                    className={`pl-9 h-10 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#E8602E] focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#E8602E] transition-all ${
+                      phone.length > 0 && phone.length < 10 ? "border-amber-500/50 focus-visible:border-amber-500" : ""
                     } ${
-                      phone.length === 10 ? "border-green-500 focus:border-green-500" : ""
+                      phone.length === 10 ? "border-green-500/50 focus-visible:border-green-500" : ""
                     }`}
                   />
                   {phone.length > 0 && (
@@ -702,7 +728,7 @@ const VoiceReportPage = () => {
             <Button
               onClick={handleSubmit}
               disabled={submitting || (!editedTranscript.trim())}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 rounded-xl shadow-sm shadow-red-600/20 gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] border-none gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
             >
               {submitting ? (
                 <>
@@ -717,7 +743,7 @@ const VoiceReportPage = () => {
               )}
             </Button>
 
-            <p className="text-[10px] text-center text-[#94A3B8] mt-3">
+            <p className="text-[10px] text-center text-white/40 mt-3">
               Your report will be classified by AI and dispatched to the appropriate emergency department in real time.
             </p>
           </div>

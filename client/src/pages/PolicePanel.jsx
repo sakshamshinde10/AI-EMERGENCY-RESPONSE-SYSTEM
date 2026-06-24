@@ -65,6 +65,12 @@ const PolicePanel = () => {
   const [expandedCard, setExpandedCard] = useState(null);
   const [expandedMapCardId, setExpandedMapCardId] = useState(null);
   const socketRef = useRef(null);
+  const audioEnabledRef = useRef(audioEnabled);
+
+  // Sync ref to avoid socket reconnects on state toggle
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+  }, [audioEnabled]);
 
   const location = useLocation();
   const currentTab = new URLSearchParams(location.search).get("tab") || "pending";
@@ -104,7 +110,7 @@ const PolicePanel = () => {
       if (emergency.department === "Police") {
         setPoliceCases((prevCases) => [emergency, ...prevCases]);
         
-        if (audioEnabled) {
+        if (audioEnabledRef.current) {
           playAlertSound(emergency.priority);
         }
 
@@ -127,7 +133,7 @@ const PolicePanel = () => {
     return () => {
       socket.disconnect();
     };
-  }, [audioEnabled]);
+  }, []);
 
   const handleUpdateStatus = async (id, status) => {
     try {

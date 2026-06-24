@@ -79,6 +79,7 @@ const AnalyticsDashboard = () => {
   const [socketConnected, setSocketConnected] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const socketRef = useRef(null);
+  const audioEnabledRef = useRef(audioEnabled);
 
   const fetchAllCases = async () => {
     try {
@@ -92,6 +93,11 @@ const AnalyticsDashboard = () => {
       setLoading(false);
     }
   };
+
+  // Keep ref in sync without triggering socket reconnects
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+  }, [audioEnabled]);
 
   useEffect(() => {
     fetchAllCases();
@@ -113,7 +119,7 @@ const AnalyticsDashboard = () => {
         return newCases.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       });
 
-      if (audioEnabled) {
+      if (audioEnabledRef.current) {
         playAlertSound(emergency.priority);
       }
 
@@ -135,7 +141,7 @@ const AnalyticsDashboard = () => {
     return () => {
       socket.disconnect();
     };
-  }, [audioEnabled]);
+  }, []);
 
   // Compute Metrics
   const policeCount = allCases.filter(c => c.department === "Police").length;

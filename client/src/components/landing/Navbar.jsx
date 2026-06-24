@@ -24,8 +24,8 @@ const Navbar = () => {
     <nav
       id="navbar"
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-          ? 'py-3.5 bg-black/70 border-b border-white/10 shadow-lg shadow-black/20'
-          : 'py-5.5 bg-transparent'
+        ? 'py-3.5 bg-black/70 border-b border-white/10 shadow-lg shadow-black/20'
+        : 'py-5.5 bg-transparent'
         }`}
       style={{
         backdropFilter: 'blur(16px)',
@@ -42,9 +42,7 @@ const Navbar = () => {
             <span className="text-sm font-bold tracking-tight block leading-tight text-white group-hover:text-[#E8602E] transition-colors">
               Emergency Command
             </span>
-            <span className="text-[9px] font-bold tracking-wider uppercase block text-white/40">
-              Government Platform
-            </span>
+
           </div>
         </Link>
 

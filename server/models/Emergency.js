@@ -19,7 +19,6 @@ const emergencySchema = new mongoose.Schema(
 
     language: {
       type: String,
-      enum: ["English", "Hindi", "Marathi"],
       default: "English",
     },
 
@@ -94,5 +93,10 @@ const emergencySchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Optimize query performance for department feeds and admin panels
+emergencySchema.index({ createdAt: -1 });
+emergencySchema.index({ status: 1 });
+emergencySchema.index({ department: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Emergency", emergencySchema);

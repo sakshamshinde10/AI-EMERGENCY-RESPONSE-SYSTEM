@@ -87,6 +87,7 @@ const Dashboard = () => {
   // Console log state for tracking dashboard events
   const [logs, setLogs] = useState([]);
   const socketRef = useRef(null);
+  const audioEnabledRef = useRef(audioEnabled);
 
   const addLog = (message) => {
     const time = new Date().toLocaleTimeString();
@@ -133,6 +134,11 @@ const Dashboard = () => {
     }
   };
 
+  // Keep ref in sync without triggering socket reconnects
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+  }, [audioEnabled]);
+
   // Socket Connection and Event Listeners
   useEffect(() => {
     fetchDashboardData();
@@ -152,9 +158,9 @@ const Dashboard = () => {
 
     socket.on("new-emergency", (emergency) => {
       addLog(`🚨 AI classified new incident: ${emergency.priority} Priority - ${emergency.department}`);
-      
+
       // Play audio notification
-      if (audioEnabled) {
+      if (audioEnabledRef.current) {
         playAlertSound(emergency.priority);
       }
 
@@ -172,18 +178,28 @@ const Dashboard = () => {
         duration: 8000,
       });
 
+      // Update state immediately for instant feedback
+      setAllCases((prevCases) => {
+        if (prevCases.some((c) => c._id === emergency._id)) return prevCases;
+        return [emergency, ...prevCases];
+      });
+
       fetchDashboardData();
     });
 
     socket.on("status-updated", (updated) => {
       addLog(`Case status updated for ${updated.name} -> ${updated.status}`);
+      // Update state immediately
+      setAllCases((prevCases) =>
+        prevCases.map((c) => (c._id === updated._id ? updated : c))
+      );
       fetchDashboardData();
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [audioEnabled]);
+  }, []);
 
   // Derived Statistics
   const stats = {

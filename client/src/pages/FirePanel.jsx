@@ -63,6 +63,7 @@ const FirePanel = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [expandedMapCardId, setExpandedMapCardId] = useState(null);
   const socketRef = useRef(null);
+  const audioEnabledRef = useRef(audioEnabled);
 
   const location = useLocation();
   const currentTab = new URLSearchParams(location.search).get("tab") || "pending";
@@ -84,6 +85,11 @@ const FirePanel = () => {
     }
   };
 
+  // Keep ref in sync without triggering socket reconnects
+  useEffect(() => {
+    audioEnabledRef.current = audioEnabled;
+  }, [audioEnabled]);
+
   useEffect(() => {
     fetchFireCases();
 
@@ -101,8 +107,8 @@ const FirePanel = () => {
     const handleNewEmergency = (emergency) => {
       if (emergency.department === "Fire" || emergency.department === "Fire Brigade") {
         setFireCases((prevCases) => [emergency, ...prevCases]);
-        
-        if (audioEnabled) {
+
+        if (audioEnabledRef.current) {
           playAlertSound(emergency.priority);
         }
 
@@ -125,7 +131,7 @@ const FirePanel = () => {
     return () => {
       socket.disconnect();
     };
-  }, [audioEnabled]);
+  }, []);
 
   const handleUpdateStatus = async (id, status) => {
     try {

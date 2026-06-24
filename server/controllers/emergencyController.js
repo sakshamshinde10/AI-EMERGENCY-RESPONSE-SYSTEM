@@ -7,7 +7,8 @@ const getAllEmergencies = async (req, res) => {
   try {
     const emergencies = await Emergency.find({})
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -29,7 +30,8 @@ const getHospitalEmergencies = async (req, res) => {
       department: "Hospital",
     })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -51,7 +53,8 @@ const getFireEmergencies = async (req, res) => {
       department: "Fire Brigade",
     })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -73,7 +76,8 @@ const getPoliceEmergencies = async (req, res) => {
       department: "Police",
     })
       .sort({ createdAt: -1 })
-      .limit(50);
+      .limit(50)
+      .lean();
 
     res.status(200).json({
       success: true,

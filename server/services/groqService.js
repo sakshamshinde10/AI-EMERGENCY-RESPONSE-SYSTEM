@@ -1,10 +1,9 @@
 const Groq = require("groq-sdk");
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const groq = new Groq();
 
 const classifyEmergencyAI = async (message) => {
+  const cleanMessage = (message || "").trim();
   try {
     const completion = await groq.chat.completions.create({
       messages: [
@@ -76,7 +75,7 @@ Output:
         },
         {
           role: "user",
-          content: message,
+          content: cleanMessage,
         },
       ],
       model: "llama-3.3-70b-versatile",
