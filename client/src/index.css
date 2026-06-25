@@ -48,9 +48,10 @@ html {
 }
 
 body {
-  font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Manrope', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #0a0a0f;
 }
 
 :root {
@@ -123,6 +124,26 @@ body {
 @keyframes grid-pulse {
   0%, 100% { opacity: 0.02; }
   50% { opacity: 0.05; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(99,102,241,0.3); }
+  50% { box-shadow: 0 0 20px rgba(99,102,241,0.6); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
 }
 
 .animate-fade-in-up {
@@ -222,7 +243,8 @@ body {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-[#F8FAFC] text-[#0F172A];
+    background: #0a0a0f;
+    color: white;
   }
   html {
     @apply font-sans;
