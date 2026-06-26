@@ -56,8 +56,11 @@ export const getAllEmergencies = async () => {
   return response.data;
 };
 
-export const updateEmergencyStatus = async (id, status) => {
-  const response = await apiClient.patch(`/${id}/status`, { status });
+export const updateEmergencyStatus = async (id, status, department) => {
+  const payload = {};
+  if (status !== undefined) payload.status = status;
+  if (department !== undefined) payload.department = department;
+  const response = await apiClient.patch(`/${id}/status`, payload);
   return response.data;
 };
 

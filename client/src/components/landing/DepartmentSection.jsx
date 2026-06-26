@@ -65,7 +65,7 @@ const DepartmentSection = () => {
             return (
               <div
                 key={dept.name}
-                className={`group rounded-2xl border border-white/5 bg-[#0B0B0B] transition-all duration-300 flex flex-col relative overflow-hidden ${dept.hoverShadow} ${dept.hoverBorder}`}
+                className={`group rounded-xl border border-white/5 bg-[#0A0A0A] transition-all duration-300 flex flex-col relative overflow-hidden ${dept.hoverShadow} ${dept.hoverBorder}`}
               >
                 {/* Accent top border strip */}
                 <div
@@ -76,11 +76,10 @@ const DepartmentSection = () => {
                 <div className="p-8 flex flex-col flex-1">
                   {/* Icon Box */}
                   <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center border border-white/10 mb-6 transition-all duration-300 group-hover:scale-105"
+                    className="w-11 h-11 rounded-lg flex items-center justify-center border border-white/10 mb-6 transition-all duration-300 group-hover:scale-105"
                     style={{ 
                       color: dept.color, 
                       backgroundColor: `${dept.color}10`,
-                      boxShadow: `0 0 15px ${dept.color}15`
                     }}
                   >
                     <IconComponent className="h-6 w-6" />

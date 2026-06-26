@@ -38,11 +38,13 @@ const Navbar = () => {
           <div className="w-9 h-9 rounded-lg flex items-center justify-center transition-all bg-white/5 border border-white/10 group-hover:border-[#E8602E]/50 group-hover:shadow-[0_0_15px_rgba(232,96,46,0.3)]">
             <Shield className="h-5 w-5 text-[#E8602E]" />
           </div>
-          <div>
-            <span className="text-sm font-bold tracking-tight block leading-tight text-white group-hover:text-[#E8602E] transition-colors">
-              Emergency Command
+          <div className="flex flex-col">
+            <span className="text-sm font-extrabold tracking-widest text-white leading-none uppercase font-sans">
+              Emergency
             </span>
-
+            <span className="text-[8px] font-bold tracking-widest text-white/40 uppercase mt-0.5 font-sans">
+              Command Center
+            </span>
           </div>
         </Link>
 
@@ -60,22 +62,20 @@ const Navbar = () => {
         </div>
 
         {/* Right CTA */}
-        <div className="hidden md:flex items-center gap-3">
-          <Link
-            to="/report-emergency"
-            id="nav-report-btn"
-            className="px-4.5 py-2 text-xs font-bold rounded-lg bg-[#E8602E] hover:bg-[#D74E1D] text-white transition-all duration-300 flex items-center gap-1.5 hover:shadow-[0_0_25px_rgba(232,96,46,0.5)]"
-          >
-            <Mic className="h-3.5 w-3.5" />
-            <span>Report Emergency</span>
-          </Link>
+        <div className="hidden md:flex items-center gap-5">
           <Link
             to="/login"
             id="nav-login-btn"
-            className="px-4.5 py-2 text-xs font-bold rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white hover:border-white/20 transition-all flex items-center gap-1.5"
+            className="text-xs font-semibold text-white/80 hover:text-white transition-colors"
           >
-            <span>Department Login</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            Login
+          </Link>
+          <Link
+            to="/report-emergency"
+            id="nav-report-btn"
+            className="px-5 py-2.5 text-xs font-bold rounded-lg bg-[#E8602E] hover:bg-[#D74E1D] text-white transition-all duration-300 hover:shadow-[0_0_25px_rgba(232,96,46,0.4)]"
+          >
+            Report Emergency
           </Link>
         </div>
 

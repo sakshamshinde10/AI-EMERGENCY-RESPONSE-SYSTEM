@@ -21,10 +21,8 @@ import {
   Zap,
 } from "lucide-react";
 
-// Detect Devanagari script (Hindi + Marathi)
 const hasDevanagari = (text) => /[\u0900-\u097F]/.test(text);
 
-// Map browser locale → Web Speech API lang code
 const getBrowserLang = () => {
   const nav = navigator.language || navigator.userLanguage || "en";
   if (nav.startsWith("hi")) return { code: "hi-IN", label: "हिन्दी", id: "Hindi" };
@@ -33,17 +31,12 @@ const getBrowserLang = () => {
 };
 
 const VoiceReportPage = () => {
-  // Auto-detected language
   const [detectedLang, setDetectedLang] = useState(getBrowserLang());
   const detectedLangRef = useRef(getBrowserLang());
-
-  // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimText, setInterimText] = useState("");
   const [isSupported, setIsSupported] = useState(true);
-
-  // Form
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [editedTranscript, setEditedTranscript] = useState("");
@@ -54,8 +47,6 @@ const VoiceReportPage = () => {
     clientCity: "",
     clientLandmark: "",
   });
-
-  // Submission
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState(null);
@@ -66,17 +57,14 @@ const VoiceReportPage = () => {
   const transcriptRef = useRef("");
   const finalizedTranscriptRef = useRef("");
 
-  // Keep isRecordingRef in sync with isRecording state
   useEffect(() => {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
-  // Keep transcriptRef in sync with transcript state
   useEffect(() => {
     transcriptRef.current = transcript;
   }, [transcript]);
 
-  // Reverse Geocoding helper using OpenStreetMap Nominatim API
   const reverseGeocode = async (lat, lon) => {
     try {
       const res = await fetch(
@@ -87,33 +75,9 @@ const VoiceReportPage = () => {
       if (!data) return null;
 
       const addressDetails = data.address || {};
-
-      // Landmark matching
-      const landmark =
-        addressDetails.building ||
-        addressDetails.amenity ||
-        addressDetails.shop ||
-        addressDetails.tourism ||
-        addressDetails.historic ||
-        addressDetails.office ||
-        addressDetails.leisure ||
-        "";
-
-      // Area matching
-      const area =
-        addressDetails.neighbourhood ||
-        addressDetails.suburb ||
-        addressDetails.road ||
-        addressDetails.residential ||
-        "";
-
-      // City matching
-      const city =
-        addressDetails.city ||
-        addressDetails.town ||
-        addressDetails.village ||
-        addressDetails.county ||
-        "";
+      const landmark = addressDetails.building || addressDetails.amenity || addressDetails.shop || addressDetails.tourism || addressDetails.historic || addressDetails.office || addressDetails.leisure || "";
+      const area = addressDetails.neighbourhood || addressDetails.suburb || addressDetails.road || addressDetails.residential || "";
+      const city = addressDetails.city || addressDetails.town || addressDetails.village || addressDetails.county || "";
 
       return {
         address: data.display_name || "",
@@ -127,10 +91,8 @@ const VoiceReportPage = () => {
     }
   };
 
-  // Check browser support and fetch GPS coordinates + reverse geocode
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setIsSupported(false);
     }
@@ -140,11 +102,7 @@ const VoiceReportPage = () => {
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          setCoords({
-            latitude: lat,
-            longitude: lon,
-          });
-
+          setCoords({ latitude: lat, longitude: lon });
           const resolved = await reverseGeocode(lat, lon);
           if (resolved) {
             setClientLocationInfo({
@@ -162,14 +120,12 @@ const VoiceReportPage = () => {
     }
   }, []);
 
-  // Sync transcript to editable field
   useEffect(() => {
     setEditedTranscript(transcript);
   }, [transcript]);
 
   const startRecording = useCallback(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setIsSupported(false);
       return;
@@ -200,13 +156,10 @@ const VoiceReportPage = () => {
       setTranscript(fullText);
       setInterimText(interim);
 
-      // Auto-detect language from script on first speech chunk
       const sampleText = sessionFinal || interim;
       if (!langSwitched && sampleText.trim().length > 2) {
         langSwitched = true;
         if (hasDevanagari(sampleText)) {
-          // Devanagari detected — check if it's Marathi or Hindi
-          // Marathi marker words (basic heuristic)
           const isMrHint = /माझ|आहे|आग|मी|होत|कर|आम्ही|झाल/.test(sampleText);
           const newLang = isMrHint
             ? { code: "mr-IN", label: "मराठी", id: "Marathi" }
@@ -214,7 +167,6 @@ const VoiceReportPage = () => {
           if (detectedLangRef.current.code !== newLang.code) {
             detectedLangRef.current = newLang;
             setDetectedLang(newLang);
-            // Restart recognition with correct lang for next chunks
             try {
               recognitionRef.current.stop();
             } catch (_) {}
@@ -235,23 +187,20 @@ const VoiceReportPage = () => {
     recognition.onerror = (event) => {
       console.error("Speech recognition error:", event.error);
       if (event.error === "not-allowed") {
-        setError("Microphone access denied. Please allow microphone access in your browser settings.");
+        setError("Microphone access denied. Please enable microphone permissions in your browser.");
         setIsRecording(false);
         isRecordingRef.current = false;
       } else if (event.error === "no-speech") {
-        console.log("No speech detected. Web Speech API paused/silent.");
+        console.log("Speech recognition timeout: silent.");
       } else {
-        setError(`Voice recognition error: ${event.error}. Please try again.`);
+        setError(`Voice recognition failed: ${event.error}. Please try again.`);
         setIsRecording(false);
         isRecordingRef.current = false;
       }
     };
 
     recognition.onend = () => {
-      // Save the accumulated text from this session
       finalizedTranscriptRef.current = transcriptRef.current;
-
-      // Auto-restart with updated lang if still recording
       if (recognitionRef.current && isRecordingRef.current) {
         try {
           const newRec = new SpeechRecognition();
@@ -280,7 +229,7 @@ const VoiceReportPage = () => {
       setInterimText("");
     } catch (e) {
       console.error("Failed to start recognition:", e);
-      setError("Failed to start voice recognition. Please try again.");
+      setError("Failed to initialize voice recognition.");
       setIsRecording(false);
       isRecordingRef.current = false;
     }
@@ -290,7 +239,7 @@ const VoiceReportPage = () => {
     setIsRecording(false);
     isRecordingRef.current = false;
     if (recognitionRef.current) {
-      recognitionRef.current.onend = null; // Prevent auto-restart
+      recognitionRef.current.onend = null;
       recognitionRef.current.onerror = null;
       try {
         recognitionRef.current.stop();
@@ -314,12 +263,12 @@ const VoiceReportPage = () => {
     const finalMessage = editedTranscript.trim();
 
     if (!name.trim()) {
-      setError("Please enter your name.");
+      setError("Citizen name is required.");
       return;
     }
     const cleanPhone = phone.replace(/[\s\-\(\)]/g, "");
     if (!cleanPhone) {
-      setError("Please enter your phone number.");
+      setError("Phone number is required.");
       return;
     }
     if (!/^\d{10}$/.test(cleanPhone)) {
@@ -327,7 +276,7 @@ const VoiceReportPage = () => {
       return;
     }
     if (!finalMessage) {
-      setError("No transcript to submit. Please record your emergency.");
+      setError("Please record your emergency before submitting.");
       return;
     }
 
@@ -337,7 +286,7 @@ const VoiceReportPage = () => {
     try {
       const response = await createEmergency({
         name: name.trim(),
-        phone: phone.replace(/[\s\-\(\)]/g, ""),
+        phone: cleanPhone,
         message: finalMessage,
         language: detectedLangRef.current.id,
         latitude: coords.latitude,
@@ -352,11 +301,11 @@ const VoiceReportPage = () => {
         setResult(response.data);
         setSubmitted(true);
       } else {
-        setError("Failed to submit emergency. Please try again.");
+        setError("Failed to file emergency report. Please try again.");
       }
     } catch (err) {
       console.error("Submit error:", err);
-      setError("Network error. Please check your connection and try again.");
+      setError("Network connection failed. Please verify status and retry.");
     } finally {
       setSubmitting(false);
     }
@@ -378,95 +327,98 @@ const VoiceReportPage = () => {
     detectedLangRef.current = defaultLang;
   };
 
-  // --- SUCCESS SCREEN ---
+  // Success Screen Redesign
   if (submitted && result) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-[#E8602E] selection:text-white">
+      <div className="min-h-screen text-white flex items-center justify-center p-4 relative overflow-hidden font-sans select-none" style={{ background: "#0B1120" }}>
         {/* Decorative Blur Blobs */}
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E8602E]/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Grid background with radial mask */}
+        {/* Radial masked grid */}
         <div 
-          className="absolute inset-0 hero-grid opacity-30 pointer-events-none" 
+          className="absolute inset-0 hero-grid opacity-20 pointer-events-none" 
           style={{
             WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
             maskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
           }}
         />
 
-        <div className="relative w-full max-w-lg z-10">
-          <div className="bg-[#0B0B0B]/90 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="h-8 w-8 text-emerald-500" />
+        <div className="relative w-full max-w-[480px] z-10 animate-fade-in">
+          <div className="bg-[#111827] rounded-2xl border border-white/5 shadow-2xl p-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-500/10">
+              <CheckCircle className="h-6 w-6 text-emerald-500" />
             </div>
 
-            <h2 className="text-xl font-extrabold text-white mb-2">
-              Emergency Report Filed
+            <h2 className="text-lg font-bold text-white uppercase tracking-wider mb-1.5">
+              Incident Dispatch Routed
             </h2>
-            <p className="text-sm text-white/60 mb-6">
-              Your report has been classified and dispatched to the appropriate department.
+            <p className="text-xs text-slate-400 mb-6 font-semibold">
+              The central AI classified and routed your emergency report to response units.
             </p>
 
-            {/* Classification Result */}
-            <div className="bg-white/5 rounded-xl border border-white/5 p-5 mb-6 text-left space-y-3">
+            {/* Core Classification Info */}
+            <div className="bg-[#1F2937]/20 rounded-xl border border-white/5 p-5 mb-6 text-left space-y-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Department</span>
-                <Badge className={`text-xs font-bold px-2.5 py-0.5 border ${
-                  result.department === "Police" ? "bg-blue-600/20 text-blue-400 border-blue-500/30" :
-                  result.department === "Fire Brigade" ? "bg-red-600/20 text-red-400 border-red-500/30" :
-                  result.department === "Hospital" ? "bg-green-600/20 text-green-400 border-green-500/30" :
-                  "bg-white/10 text-white/70 border-white/20"
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Department</span>
+                <Badge className={`text-[10px] font-bold px-2 py-0.5 border ${
+                  result.department === "Police" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" :
+                  result.department === "Fire Brigade" || result.department === "Fire" ? "bg-red-500/10 text-red-400 border-red-500/20" :
+                  result.department === "Hospital" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                  "bg-white/5 text-slate-400 border-white/10"
                 }`} variant="outline">
-                  {result.department}
+                  {result.department === "Fire" ? "Fire Brigade" : result.department}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Priority</span>
-                <Badge className={`text-xs font-bold px-2.5 py-0.5 border ${
-                  result.priority === "Critical" ? "bg-red-600/20 text-red-400 border-red-500/30 animate-pulse" :
-                  result.priority === "High" ? "bg-orange-500/20 text-orange-400 border-orange-500/30" :
-                  result.priority === "Medium" ? "bg-amber-500/20 text-amber-400 border-amber-500/30" :
-                  "bg-blue-600/20 text-blue-400 border-blue-500/30"
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Threat Priority</span>
+                <Badge className={`text-[10px] font-bold px-2 py-0.5 border ${
+                  result.priority === "Critical" ? "bg-red-500/15 text-red-400 border-red-500/30 animate-pulse" :
+                  result.priority === "High" ? "bg-orange-500/10 text-orange-400 border-orange-500/20" :
+                  result.priority === "Medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                  "bg-blue-500/10 text-blue-400 border-blue-500/20"
                 }`} variant="outline">
                   {result.priority}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Language</span>
-                <span className="text-xs font-semibold text-white/90">{result.language || detectedLang.id}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Language</span>
+                <span className="text-xs font-bold text-slate-300">{result.language || detectedLang.id}</span>
               </div>
+              
               {result.address && (
-                <div className="flex items-start justify-between gap-4 pt-1.5 border-t border-white/5">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider shrink-0 mt-0.5">Address</span>
-                  <span className="text-xs font-semibold text-white/90 text-right">{result.address}</span>
+                <div className="flex items-start justify-between gap-4 pt-2 border-t border-white/[0.04]">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mt-0.5">Address</span>
+                  <span className="text-xs font-bold text-slate-300 text-right leading-tight">{result.address}</span>
                 </div>
               )}
               {result.landmark && (
-                <div className="flex items-center justify-between pt-1.5">
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Landmark</span>
-                  <span className="text-xs font-semibold text-purple-400 bg-purple-950/30 border border-purple-800/20 px-1.5 py-0.5 rounded-md">{result.landmark}</span>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Landmark</span>
+                  <span className="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                    {result.landmark}
+                  </span>
                 </div>
               )}
-              <div className="pt-2.5 border-t border-white/5">
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider block mb-1.5">Transcript</span>
-                <p className="text-xs text-white/70 leading-relaxed">{result.message}</p>
+              <div className="pt-2 border-t border-white/[0.04]">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Transcript narrative</span>
+                <p className="text-xs text-slate-400 leading-relaxed font-semibold italic">"{result.message}"</p>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={handleNewReport}
-                className="flex-1 bg-[#E8602E] hover:bg-[#D74E1D] hover:shadow-[0_0_20px_rgba(232,96,46,0.4)] text-white font-bold text-xs h-10 gap-1.5 border-none transition-all cursor-pointer"
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-10 gap-1.5 border-none transition-all cursor-pointer shadow-lg shadow-blue-500/10"
               >
-                <RotateCcw className="h-3.5 w-3.5" /> File Another Report
+                <RotateCcw className="h-3.5 w-3.5" /> File New Report
               </Button>
               <Link to="/" className="flex-1">
                 <Button
                   variant="outline"
-                  className="w-full border-white/10 bg-white/5 hover:bg-white/10 text-white/90 font-bold text-xs h-10 gap-1.5 transition-all text-white"
+                  className="w-full border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs h-10 gap-1.5 transition-all hover:text-white"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
+                  <ArrowLeft className="h-3.5 w-3.5" /> Return Home
                 </Button>
               </Link>
             </div>
@@ -476,16 +428,15 @@ const VoiceReportPage = () => {
     );
   }
 
-  // --- MAIN FORM ---
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden font-sans selection:bg-[#E8602E] selection:text-white">
+    <div className="min-h-screen text-white relative overflow-hidden font-sans" style={{ background: "#0B1120" }}>
       {/* Decorative Blur Blobs */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#E8602E]/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-red-600/5 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Grid background with radial mask */}
+      {/* Grid background */}
       <div 
-        className="absolute inset-0 hero-grid opacity-30 pointer-events-none" 
+        className="absolute inset-0 hero-grid opacity-20 pointer-events-none" 
         style={{
           WebkitMaskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
           maskImage: 'radial-gradient(circle at center, black 40%, transparent 90%)',
@@ -493,261 +444,254 @@ const VoiceReportPage = () => {
       />
 
       {/* Header Bar */}
-      <header className="relative z-20 bg-black/70 border-b border-white/10 backdrop-blur-md shadow-lg shadow-black/20">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <header className="relative z-20 border-b border-white/5 backdrop-blur-md" style={{ background: "rgba(11,17,32,0.8)" }}>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white/5 border border-white/10 group-hover:border-[#E8602E]/50 group-hover:shadow-[0_0_15px_rgba(232,96,46,0.3)]">
-              <Shield className="h-4 w-4 text-[#E8602E]" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white/5 border border-white/5 group-hover:border-blue-500/30">
+              <Shield className="h-4 w-4 text-blue-500" />
             </div>
             <div>
-              <span className="text-sm font-bold text-white block leading-tight group-hover:text-[#E8602E] transition-colors">
+              <span className="text-xs font-bold text-white block leading-tight tracking-wider uppercase">
                 Emergency Command
               </span>
-              <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider block">
-                Voice Report System
+              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block">
+                Citizen Reporting Hub
               </span>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
-            <Badge className="bg-red-500/10 text-red-400 border-red-500/30 text-[10px] font-bold px-2 py-0.5 animate-pulse" variant="outline">
-              <Phone className="h-3 w-3 mr-1" />
-              112
-            </Badge>
-          </div>
+          <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px] font-bold px-2 py-0.5 animate-pulse uppercase tracking-wider" variant="outline">
+            <Phone className="h-2.5 w-2.5 mr-1" />
+            Line 112 Active
+          </Badge>
         </div>
       </header>
 
-      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white transition-colors mb-4">
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Home
-          </Link>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight mb-2">
-            Report an Emergency
-          </h1>
-          <p className="text-sm text-white/60 leading-relaxed">
-            Speak naturally in <strong>English, Hindi, or Marathi</strong> — language is detected automatically.
-          </p>
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-8">
+        {/* Title */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <Link to="/" className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-300 uppercase tracking-wider mb-2 transition-colors">
+              <ArrowLeft className="h-3 w-3" /> Back to portal
+            </Link>
+            <h1 className="text-xl font-bold text-white uppercase tracking-wider">
+              Emergency Reporting Console
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Record voice or type details in English, Hindi, or Marathi (automatic localization).
+            </p>
+          </div>
         </div>
 
-        {/* Unsupported Browser Warning */}
+        {/* Not Supported Warning */}
         {!isSupported && (
-          <div className="bg-amber-950/20 border border-amber-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="h-4.5 w-4.5 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-amber-400 mb-1">Browser Not Supported</p>
-              <p className="text-xs text-amber-300/80 leading-relaxed">
-                Voice recognition requires Chrome, Edge, or a Chromium-based browser.
-                You can still type your emergency in the transcript field below.
+              <p className="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1">Browser Compatibility Notice</p>
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                Native voice streaming is not available on this browser. Chrome or Edge is recommended.
+                You can still type details manually in the editor field below.
               </p>
             </div>
           </div>
         )}
 
-        {/* Error Banner */}
+        {/* Error Notification */}
         {error && (
-          <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertTriangle className="h-4.5 w-4.5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-red-400">{error}</p>
+              <p className="text-xs font-bold text-red-400 uppercase tracking-wider">{error}</p>
             </div>
           </div>
         )}
 
-        <div className="space-y-6">
-          {/* ── STEP 1: Voice Recording ── */}
-          <div className="bg-[#0B0B0B]/85 backdrop-blur-md rounded-xl border border-white/5 p-6 hover:border-white/10 transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-[#E8602E] flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-white">1</span>
+        {/* Split Recording & Form Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          
+          {/* Left Column: Recording Engine */}
+          <div className="md:col-span-3 space-y-6">
+            <div className="bg-[#111827] rounded-xl border border-white/5 p-6 flex flex-col justify-between min-h-[300px]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-blue-400">1</span>
+                  </div>
+                  <h2 className="text-xs font-bold text-white uppercase tracking-wider">Voice Capture</h2>
                 </div>
-                <h2 className="text-sm font-bold text-white">Record Your Emergency</h2>
-                <Volume2 className="h-4 w-4 text-white/40" />
-              </div>
-              {/* Auto-detected language badge */}
-              <div className="flex items-center gap-1.5 bg-[#E8602E]/10 border border-[#E8602E]/30 rounded-lg px-2.5 py-1">
-                <Zap className="h-3 w-3 text-[#E8602E]" />
-                <span className="text-[10px] font-bold text-[#E8602E] uppercase tracking-wide">Auto</span>
-                <span className="text-[10px] font-semibold text-white/90">{detectedLang.label}</span>
-              </div>
-            </div>
-
-            {/* Recording Controls */}
-            <div className="flex flex-col items-center py-6">
-              {/* Mic Button */}
-              <button
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={!isSupported && !transcript}
-                className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                  isRecording
-                    ? "bg-red-600 hover:bg-red-700 shadow-[0_0_25px_rgba(220,38,38,0.5)]"
-                    : "bg-[#E8602E] hover:bg-[#D74E1D] shadow-[0_0_25px_rgba(232,96,46,0.4)]"
-                } disabled:opacity-40 disabled:cursor-not-allowed`}
-              >
-                {isRecording ? (
-                  <Square className="h-7 w-7 text-white" />
-                ) : (
-                  <Mic className="h-8 w-8 text-white" />
-                )}
-
-                {/* Pulse rings */}
-                {isRecording && (
-                  <>
-                    <span className="absolute inset-0 rounded-full border-2 border-red-400 animate-ping opacity-35" />
-                    <span className="absolute -inset-2 rounded-full border border-red-300 animate-pulse opacity-25" />
-                  </>
-                )}
-              </button>
-
-              <p className={`mt-4 text-xs font-bold ${isRecording ? "text-red-400" : "text-white/60"}`}>
-                {isRecording ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    Listening in {detectedLang.label}... Tap to stop
-                  </span>
-                ) : transcript ? (
-                  "Tap to record more"
-                ) : (
-                  "Tap mic and speak in any language"
-                )}
-              </p>
-            </div>
-
-            {/* Live Transcript Display */}
-            {(transcript || interimText) && (
-              <div className="bg-white/5 rounded-lg border border-white/5 p-4 mt-2">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <FileText className="h-3 w-3 text-white/40" />
-                  <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Live Transcript</span>
+                <div className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-0.5">
+                  <Zap className="h-3 w-3 text-blue-400 animate-pulse" />
+                  <span className="text-[8px] font-bold text-blue-400 uppercase tracking-wider">{detectedLang.label}</span>
                 </div>
-                <p className="text-sm text-white/90 leading-relaxed">
-                  {transcript}
-                  {interimText && (
-                    <span className="text-white/40 italic"> {interimText}</span>
+              </div>
+
+              {/* Waveform & Ring Mic */}
+              <div className="flex flex-col items-center py-6">
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!isSupported && !transcript}
+                  className={`relative w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
+                    isRecording
+                      ? "bg-red-600/10 hover:bg-red-600/20 border-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]"
+                      : "bg-blue-600/10 hover:bg-blue-600/20 border-blue-500/50 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]"
+                  } disabled:opacity-40 disabled:cursor-not-allowed`}
+                >
+                  {isRecording ? (
+                    <Square className="h-6 w-6 text-red-500 animate-pulse" />
+                  ) : (
+                    <Mic className="h-6 w-6 text-blue-400" />
+                  )}
+
+                  {isRecording && (
+                    <>
+                      <span className="absolute inset-0 rounded-full border border-red-500 animate-ping opacity-30" />
+                      <span className="absolute -inset-2 rounded-full border border-red-400/30 animate-pulse opacity-20" />
+                    </>
+                  )}
+                </button>
+
+                <p className={`mt-4 text-[10px] font-bold uppercase tracking-wider ${isRecording ? "text-red-400" : "text-slate-400"}`}>
+                  {isRecording ? (
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                      Streaming audio... Tap to stop
+                    </span>
+                  ) : transcript ? (
+                    "Capture complete. Tap to record more"
+                  ) : (
+                    "Tap mic and dictate statement"
                   )}
                 </p>
               </div>
-            )}
 
-            {transcript && (
-              <div className="flex justify-end mt-3">
-                <button
-                  onClick={resetTranscript}
-                  className="text-[10px] font-bold text-white/40 hover:text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <RotateCcw className="h-3 w-3" /> Clear transcript
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* ── STEP 2: Review & Edit ── */}
-          <div className="bg-[#0B0B0B]/85 backdrop-blur-md rounded-xl border border-white/5 p-6 hover:border-white/10 transition-all duration-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-md bg-[#E8602E] flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">2</span>
-              </div>
-              <h2 className="text-sm font-bold text-white">Review & Edit Transcript</h2>
-            </div>
-
-            <textarea
-              value={editedTranscript}
-              onChange={(e) => setEditedTranscript(e.target.value)}
-              placeholder="Type your emergency here or record it above..."
-              rows={4}
-              className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white placeholder:text-white/20 focus:border-[#E8602E]/60 focus:ring-1 focus:ring-[#E8602E]/30 outline-none resize-none leading-relaxed transition-all"
-            />
-            <p className="text-[10px] text-white/40 mt-1.5">
-              You can edit the transcript to correct any errors before submitting.
-            </p>
-          </div>
-
-          {/* ── STEP 3: Contact Info & Submit ── */}
-          <div className="bg-[#0B0B0B]/85 backdrop-blur-md rounded-xl border border-white/5 p-6 hover:border-white/10 transition-all duration-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 rounded-md bg-[#E8602E] flex items-center justify-center">
-                <span className="text-[10px] font-bold text-white">3</span>
-              </div>
-              <h2 className="text-sm font-bold text-white">Contact Information</h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="text-[10px] font-bold text-white/60 uppercase tracking-wider block mb-1.5">
-                  Full Name *
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="pl-9 h-10 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#E8602E] focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#E8602E] transition-all"
-                  />
+              {/* Real-time transcription */}
+              {(transcript || interimText) && (
+                <div className="bg-[#1F2937]/15 rounded-lg border border-white/5 p-4 mt-2">
+                  <div className="flex items-center gap-1.5 mb-2 text-slate-500">
+                    <FileText className="h-3 w-3 shrink-0" />
+                    <span className="text-[8px] font-bold uppercase tracking-wider">Live stream transcript</span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-semibold leading-relaxed">
+                    {transcript}
+                    {interimText && (
+                      <span className="text-slate-500 italic"> {interimText}</span>
+                    )}
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-white/60 uppercase tracking-wider block mb-1.5">
-                  Phone Number * <span className="normal-case text-white/20 font-normal">(10 digits)</span>
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
-                  <Input
-                    value={phone}
-                    onChange={(e) => {
-                      // Only allow digits, max 10
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      setPhone(digits);
-                    }}
-                    placeholder="10-digit mobile number"
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={10}
-                    className={`pl-9 h-10 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/20 focus:border-[#E8602E] focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-[#E8602E] transition-all ${
-                      phone.length > 0 && phone.length < 10 ? "border-amber-500/50 focus-visible:border-amber-500" : ""
-                    } ${
-                      phone.length === 10 ? "border-green-500/50 focus-visible:border-green-500" : ""
-                    }`}
-                  />
-                  {phone.length > 0 && (
-                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
-                      phone.length === 10 ? "text-green-500" : "text-amber-500"
-                    }`}>
-                      {phone.length}/10
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting || (!editedTranscript.trim())}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-sm h-12 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] border-none gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Classifying & Dispatching...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  Submit Emergency Report
-                </>
               )}
-            </Button>
 
-            <p className="text-[10px] text-center text-white/40 mt-3">
-              Your report will be classified by AI and dispatched to the appropriate emergency department in real time.
-            </p>
+              {transcript && (
+                <div className="flex justify-end mt-3">
+                  <button
+                    onClick={resetTranscript}
+                    className="text-[9px] font-bold text-slate-500 hover:text-red-400 flex items-center gap-1 transition-colors cursor-pointer uppercase tracking-wider"
+                  >
+                    <RotateCcw className="h-2.5 w-2.5" /> Clear Narrative
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Right Column: Statement Review & Contact Info */}
+          <div className="md:col-span-2 space-y-6">
+            
+            {/* Statement Editor */}
+            <div className="bg-[#111827] rounded-xl border border-white/5 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+                  <span className="text-[9px] font-bold text-blue-400">2</span>
+                </div>
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">Narrative Editor</h2>
+              </div>
+
+              <textarea
+                value={editedTranscript}
+                onChange={(e) => setEditedTranscript(e.target.value)}
+                placeholder="Narrate details above or type statements here..."
+                rows={4}
+                className="w-full bg-[#1F2937]/20 border border-white/10 rounded-lg p-3 text-xs text-white placeholder-slate-600 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 outline-none resize-none leading-relaxed transition-all font-semibold"
+              />
+              <p className="text-[9px] text-slate-500 font-medium mt-1">
+                Revise details for accuracy prior to official routing.
+              </p>
+            </div>
+
+            {/* Contact Details */}
+            <div className="bg-[#111827] rounded-xl border border-white/5 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-5 h-5 rounded bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+                  <span className="text-[9px] font-bold text-blue-400">3</span>
+                </div>
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">Citizen Identity</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Caller Name *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. John Doe"
+                      className="pl-9 h-9 text-xs bg-[#1F2937]/20 border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                    Contact Phone *
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <Input
+                      value={phone}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setPhone(digits);
+                      }}
+                      placeholder="10-digit number"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      className={`pl-9 h-9 text-xs bg-[#1F2937]/20 border-white/10 text-white placeholder:text-slate-600 focus:border-blue-500 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all font-semibold ${
+                        phone.length > 0 && phone.length < 10 ? "border-amber-500/50 focus-visible:border-amber-500" : ""
+                      } ${
+                        phone.length === 10 ? "border-green-500/50 focus-visible:border-green-500" : ""
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit CTA */}
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting || (!editedTranscript.trim())}
+                className="w-full bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider h-10 rounded-lg shadow-lg shadow-red-500/10 border-none gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 mt-5"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Analyzing dispatch...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5" />
+                    File Central Dispatch
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
         </div>
+
       </div>
     </div>
   );

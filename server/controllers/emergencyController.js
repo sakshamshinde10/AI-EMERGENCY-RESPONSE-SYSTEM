@@ -178,11 +178,15 @@ const createEmergency = async (req, res) => {
 const updateEmergencyStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, department } = req.body;
+
+    const updateFields = {};
+    if (status !== undefined) updateFields.status = status;
+    if (department !== undefined) updateFields.department = department;
 
     const emergency = await Emergency.findByIdAndUpdate(
       id,
-      { status },
+      updateFields,
       { new: true },
     );
 

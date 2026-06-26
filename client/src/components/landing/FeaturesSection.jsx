@@ -63,31 +63,37 @@ const FeaturesSection = () => {
         </div>
 
         {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feature) => {
             const IconComponent = feature.icon;
             return (
               <div
                 key={feature.title}
-                className="group relative rounded-2xl border border-white/5 bg-[#0B0B0B] p-8 hover:bg-[#0E0E0E] hover:border-white/10 transition-all duration-300 hover:shadow-[0_0_35px_rgba(255,255,255,0.02)]"
+                className="group relative rounded-xl border border-white/5 bg-[#0A0A0A] p-6 hover:bg-[#0D0D0D] hover:border-white/10 transition-all duration-300 overflow-hidden"
               >
+                {/* Top accent line */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: `linear-gradient(to right, transparent, ${feature.color}50, transparent)` }}
+                />
+
                 {/* Icon */}
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-6 transition-transform group-hover:scale-105 border border-white/10"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center mb-5 border"
                   style={{ 
                     backgroundColor: `${feature.color}10`, 
                     color: feature.color,
-                    boxShadow: `0 0 15px ${feature.color}15`
+                    borderColor: `${feature.color}25`
                   }}
                 >
-                  <IconComponent className="h-5 w-5" />
+                  <IconComponent className="h-4.5 w-4.5" />
                 </div>
 
                 {/* Content */}
-                <h3 className="text-sm font-bold text-white mb-2.5 transition-colors group-hover:text-[#E8602E]">
+                <h3 className="text-sm font-bold text-white mb-2 transition-colors group-hover:text-[#E8602E]">
                   {feature.title}
                 </h3>
-                <p className="text-xs text-white/50 leading-relaxed">
+                <p className="text-xs text-white/45 leading-relaxed">
                   {feature.description}
                 </p>
               </div>

@@ -6,7 +6,6 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Toaster, toast } from "sonner";
 import {
   PieChart,
@@ -19,8 +18,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   Area,
   AreaChart,
 } from "recharts";
@@ -39,82 +36,36 @@ import {
   Filter,
   Eye,
   RefreshCw,
-  AlertTriangle,
   PhoneCall,
   Globe,
   Mic,
   Zap,
   Target,
   Radio,
-  ChevronUp,
+  MapPin,
 } from "lucide-react";
 
-// Vibrant Color System
 const COLORS = {
-  Police: "#6366F1",
-  Fire: "#EF4444",
-  Hospital: "#10B981",
-  Pending: "#F59E0B",
-  InProgress: "#3B82F6",
-  Resolved: "#10B981",
-  Critical: "#EF4444",
-  High: "#F97316",
-  Medium: "#EAB308",
-  Low: "#22C55E",
+  Police: "#3B82F6",       // Blue
+  Fire: "#EF4444",         // Red
+  Hospital: "#10B981",     // Emerald
+  Pending: "#F59E0B",      // Amber
+  InProgress: "#3B82F6",   // Blue
+  Resolved: "#10B981",     // Emerald
+  Critical: "#EF4444",     // Red
+  High: "#F97316",         // Orange
+  Medium: "#F59E0B",       // Amber
+  Low: "#10B981",          // Emerald
 };
 
-const GRADIENTS = {
-  Police: "from-indigo-500 to-purple-600",
-  Fire: "from-red-500 to-rose-600",
-  Hospital: "from-emerald-500 to-teal-600",
-  Critical: "from-red-500 to-pink-600",
-  Warning: "from-amber-500 to-orange-600",
-  Success: "from-emerald-500 to-green-600",
-  Info: "from-blue-500 to-indigo-600",
-};
-
-// Web Audio API beep sound generator
-const playAlertSound = (priority) => {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    if (priority === "Critical" || priority === "High") {
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(988, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      oscillator.start();
-      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime + 0.12);
-      oscillator.frequency.setValueAtTime(988, audioCtx.currentTime + 0.18);
-      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.18);
-      gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime + 0.3);
-      oscillator.stop(audioCtx.currentTime + 0.35);
-    } else {
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(659, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      oscillator.start();
-      gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime + 0.2);
-      oscillator.stop(audioCtx.currentTime + 0.25);
-    }
-  } catch (error) {
-    console.log("AudioContext playback failed", error);
-  }
-};
-
-// Custom Tooltip for Charts
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-gray-900 border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
-        <p className="text-xs text-gray-400 font-medium mb-1">{label}</p>
+      <div className="bg-[#111827] border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1.5">{label}</p>
         {payload.map((p, i) => (
-          <p key={i} className="text-sm font-bold" style={{ color: p.color || p.fill }}>
-            {p.name}: <span className="text-white">{p.value}</span>
+          <p key={i} className="text-xs font-semibold" style={{ color: p.color || p.fill }}>
+            {p.name}: <span className="text-white font-bold">{p.value}</span>
           </p>
         ))}
       </div>
@@ -129,6 +80,7 @@ const AdminDashboard = () => {
   const [socketConnected, setSocketConnected] = useState(false);
   const [selectedCase, setSelectedCase] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [assigningDept, setAssigningDept] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
@@ -157,8 +109,8 @@ const AdminDashboard = () => {
     const socket = socketRef.current;
     socket.on("connect", () => setSocketConnected(true));
     socket.on("disconnect", () => setSocketConnected(false));
-    socket.on("new-emergency", (emergency) => {
-      playAlertSound(emergency.priority);
+    
+    const handleNewEmergency = (emergency) => {
       toast.error(`NEW CENTRAL ALERT ROUTED`, {
         description: `Routed to ${emergency.department} | Priority: ${emergency.priority}`,
         duration: 8000,
@@ -168,16 +120,25 @@ const AdminDashboard = () => {
         return [emergency, ...prevCases];
       });
       fetchDashboardData();
-    });
-    socket.on("status-updated", (updated) => {
+    };
+
+    const handleStatusUpdated = (updated) => {
       if (updated && updated._id) {
         setAllCases((prevCases) =>
           prevCases.map((c) => (c._id === updated._id ? updated : c))
         );
       }
       fetchDashboardData();
-    });
-    return () => socket.disconnect();
+    };
+
+    socket.on("new-emergency", handleNewEmergency);
+    socket.on("status-updated", handleStatusUpdated);
+
+    return () => {
+      socket.off("new-emergency", handleNewEmergency);
+      socket.off("status-updated", handleStatusUpdated);
+      socket.disconnect();
+    };
   }, []);
 
   const handleStatusChange = async (caseId, newStatus) => {
@@ -198,6 +159,29 @@ const AdminDashboard = () => {
       toast.error("Update Action Failed");
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleAssignDepartment = async (caseId, newDept) => {
+    setAssigningDept(true);
+    try {
+      const response = await updateEmergencyStatus(caseId, undefined, newDept);
+      if (response.success) {
+        toast.success(`Unit Assigned: ${newDept}`, {
+          description: `Incident #${caseId.slice(-6).toUpperCase()} has been routed to ${newDept}.`,
+        });
+        if (selectedCase && selectedCase._id === caseId) {
+          setSelectedCase({ ...selectedCase, department: newDept });
+        }
+        fetchDashboardData();
+      }
+    } catch (error) {
+      console.error('Failed to assign department:', error);
+      toast.error('Department Assignment Failed', {
+        description: 'Could not update unit. Please try again.',
+      });
+    } finally {
+      setAssigningDept(false);
     }
   };
 
@@ -235,8 +219,8 @@ const AdminDashboard = () => {
 
   const deptData = [
     { name: "Police", value: policeCount, color: COLORS.Police },
-    { name: "Fire Dept", value: fireCount, color: COLORS.Fire },
-    { name: "Hospital", value: hospitalCount, color: COLORS.Hospital },
+    { name: "Fire Brigade", value: fireCount, color: COLORS.Fire },
+    { name: "Hospital EMS", value: hospitalCount, color: COLORS.Hospital },
   ].filter((d) => d.value > 0);
 
   const statusData = [
@@ -274,16 +258,16 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#060913" }}>
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-2 border-indigo-500/20 animate-ping absolute" />
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <Zap className="h-7 w-7 text-white animate-pulse" />
+            <div className="w-16 h-16 rounded-full border-2 border-blue-500/20 animate-ping absolute" />
+            <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center border border-blue-500/30">
+              <Zap className="h-6 w-6 text-blue-500 animate-pulse" />
             </div>
           </div>
-          <p className="text-sm font-semibold text-gray-400 tracking-widest uppercase animate-pulse">
-            Initializing Command Center...
+          <p className="text-xs font-bold text-slate-400 tracking-widest uppercase animate-pulse">
+            Connecting Command Registry...
           </p>
         </div>
       </div>
@@ -294,129 +278,98 @@ const AdminDashboard = () => {
     <DashboardLayout title="Central Command Overview">
       <Toaster position="top-right" richColors />
 
-      {/* Hero Stats Bar */}
+      {/* Flat Header Stats - Linear Style */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Total Cases */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 p-5 shadow-lg shadow-indigo-500/20 group hover:shadow-indigo-500/40 transition-all duration-300">
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -right-1 -bottom-6 w-16 h-16 rounded-full bg-white/5" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-indigo-200 uppercase tracking-wider">Total Cases</p>
-              <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center">
-                <Layers className="h-4.5 w-4.5 text-white" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-black text-white mb-1">{allCases.length}</h3>
-            <p className="text-xs text-indigo-200 font-medium flex items-center gap-1">
-              <ChevronUp className="h-3 w-3" />
-              Centrally logged incidents
-            </p>
+        <div className="bg-[#0d1222]/85 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incident Logged</span>
+            <Layers className="h-4 w-4 text-slate-400" />
           </div>
+          <h3 className="text-2xl font-black text-white">{allCases.length}</h3>
+          <p className="text-[10px] text-slate-500 mt-1 font-medium">Cumulative registry cases</p>
         </div>
 
         {/* Active Encounters */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-cyan-600 p-5 shadow-lg shadow-blue-500/20 group hover:shadow-blue-500/40 transition-all duration-300">
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -right-1 -bottom-6 w-16 h-16 rounded-full bg-white/5" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-blue-200 uppercase tracking-wider">Active Encounters</p>
-              <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center">
-                <Activity className="h-4.5 w-4.5 text-white animate-pulse" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-black text-white mb-1">{activeCases.length}</h3>
-            <p className="text-xs text-blue-200 font-medium">Live response operations</p>
+        <div className="bg-[#0d1222]/85 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Patrols</span>
+            <Activity className="h-4 w-4 text-blue-500 animate-pulse" />
           </div>
+          <h3 className="text-2xl font-black text-white">{activeCases.length}</h3>
+          <p className="text-[10px] text-slate-500 mt-1 font-medium">In-progress response operations</p>
         </div>
 
         {/* Critical Threats */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 via-red-600 to-rose-700 p-5 shadow-lg shadow-red-500/20 group hover:shadow-red-500/40 transition-all duration-300">
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -right-1 -bottom-6 w-16 h-16 rounded-full bg-white/5" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-red-200 uppercase tracking-wider">Critical Threats</p>
-              <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center">
-                <AlertOctagon className={`h-4.5 w-4.5 text-white ${criticalCases.length > 0 ? "animate-bounce" : ""}`} />
-              </div>
-            </div>
-            <h3 className="text-3xl font-black text-white mb-1">{criticalCases.length}</h3>
-            <p className="text-xs text-red-200 font-medium">
-              {criticalCases.length > 0 ? "⚠ Immediate action required" : "No active critical threats"}
-            </p>
+        <div className={`bg-[#0d1222]/85 backdrop-blur-md border rounded-xl p-5 hover:border-red-500/20 transition-all ${criticalCases.length > 0 ? "border-red-500/30 shadow-[inset_0_0_12px_rgba(239,68,68,0.06)]" : "border-white/5"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Critical Threats</span>
+            <AlertOctagon className={`h-4 w-4 text-red-500 ${criticalCases.length > 0 ? "animate-pulse" : ""}`} />
           </div>
+          <h3 className="text-2xl font-black text-white">{criticalCases.length}</h3>
+          <p className="text-[10px] text-red-400/70 mt-1 font-medium">
+            {criticalCases.length > 0 ? "⚠ Dispatch forces immediately" : "Zero critical emergencies"}
+          </p>
         </div>
 
         {/* Resolved */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 p-5 shadow-lg shadow-emerald-500/20 group hover:shadow-emerald-500/40 transition-all duration-300">
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
-          <div className="absolute -right-1 -bottom-6 w-16 h-16 rounded-full bg-white/5" />
-          <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-emerald-200 uppercase tracking-wider">Resolved Actions</p>
-              <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center">
-                <CheckCircle2 className="h-4.5 w-4.5 text-white" />
-              </div>
-            </div>
-            <h3 className="text-3xl font-black text-white mb-1">{resolvedCases.length}</h3>
-            <p className="text-xs text-emerald-200 font-medium">
-              {allCases.length > 0 ? `${Math.round((resolvedCases.length / allCases.length) * 100)}% resolution rate` : "No data yet"}
-            </p>
+        <div className="bg-[#0d1222]/85 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-white/10 transition-all">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Resolved Actions</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </div>
+          <h3 className="text-2xl font-black text-white">{resolvedCases.length}</h3>
+          <p className="text-[10px] text-slate-500 mt-1 font-medium">
+            {allCases.length > 0 ? `${Math.round((resolvedCases.length / allCases.length) * 100)}% absolute resolution` : "No cases logs"}
+          </p>
         </div>
       </div>
 
-      {/* Secondary Stats Row */}
+      {/* Sub Stats Row */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="rounded-xl bg-gray-900/60 border border-white/8 p-4 flex items-center gap-4 backdrop-blur-sm">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center">
-            <Clock className="h-5 w-5 text-amber-400" />
+        <div className="rounded-lg bg-[#0d1222]/50 border border-white/5 p-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+            <Clock className="h-4 w-4 text-amber-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Pending Queue</p>
-            <p className="text-xl font-black text-amber-400">{pendingCases.length}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Pending</p>
+            <p className="text-sm font-black text-amber-500">{pendingCases.length}</p>
           </div>
         </div>
-        <div className="rounded-xl bg-gray-900/60 border border-white/8 p-4 flex items-center gap-4 backdrop-blur-sm">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center">
-            <Target className="h-5 w-5 text-blue-400" />
+        <div className="rounded-lg bg-[#0d1222]/50 border border-white/5 p-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+            <Target className="h-4 w-4 text-blue-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">In Progress</p>
-            <p className="text-xl font-black text-blue-400">{inProgressCases.length}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">In Progress</p>
+            <p className="text-sm font-black text-blue-500">{inProgressCases.length}</p>
           </div>
         </div>
-        <div className="rounded-xl bg-gray-900/60 border border-white/8 p-4 flex items-center gap-4 backdrop-blur-sm">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-indigo-400" />
+        <div className="rounded-lg bg-[#0d1222]/50 border border-white/5 p-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+            <Shield className="h-4 w-4 text-emerald-500" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Depts Active</p>
-            <p className="text-xl font-black text-indigo-400">{deptData.length}</p>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Resolved</p>
+            <p className="text-sm font-black text-emerald-500">{resolvedCases.length}</p>
           </div>
         </div>
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
-        {/* Department Distribution */}
-        <div className="rounded-2xl bg-gray-900/70 border border-white/8 backdrop-blur-sm overflow-hidden">
-          <div className="px-5 pt-5 pb-3 border-b border-white/6 flex items-center justify-between">
+        {/* Department Allocation */}
+        <div className="rounded-xl bg-[#0d1222]/85 backdrop-blur-md border border-white/5 overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-white/5 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white">Department Allocation</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Distribution of active & resolved incidents</p>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Department Allocation</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Active & resolved incident distribution</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {deptData.map((d, i) => (
-                <div key={i} className="flex items-center gap-1">
+                <div key={i} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                  <span className="text-[10px] text-gray-400 font-medium">{d.name}</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{d.name}</span>
                 </div>
               ))}
             </div>
@@ -430,11 +383,9 @@ const AdminDashboard = () => {
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
-                    outerRadius={90}
-                    paddingAngle={4}
+                    outerRadius={85}
+                    paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
                     style={{ outline: "none" }}
                   >
                     {deptData.map((entry, index) => (
@@ -445,38 +396,30 @@ const AdminDashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-gray-600">
-                <Inbox className="h-8 w-8" />
-                <p className="text-xs font-medium">No allocation data</p>
+              <div className="flex flex-col items-center gap-2 text-slate-600">
+                <Inbox className="h-8 w-8 text-slate-700" />
+                <p className="text-xs font-semibold">No active allocation logs</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Priority Bar Chart */}
-        <div className="rounded-2xl bg-gray-900/70 border border-white/8 backdrop-blur-sm overflow-hidden">
-          <div className="px-5 pt-5 pb-3 border-b border-white/6">
-            <h3 className="text-sm font-bold text-white">Priority Distribution</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Count of incidents by threat classification</p>
+        <div className="rounded-xl bg-[#0d1222]/85 backdrop-blur-md border border-white/5 overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-white/5">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Priority Distribution</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Categorized threat intelligence cases count</p>
           </div>
           <div className="p-4 h-60">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={priorityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  {priorityData.map((entry, i) => (
-                    <linearGradient key={i} id={`grad-${entry.name}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={entry.fill} stopOpacity={1} />
-                      <stop offset="100%" stopColor={entry.fill} stopOpacity={0.5} />
-                    </linearGradient>
-                  ))}
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="name" stroke="#4B5563" fontSize={11} fontWeight={600} tickLine={false} axisLine={false} />
-                <YAxis stroke="#4B5563" fontSize={11} fontWeight={600} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+              <BarChart data={priorityData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="name" stroke="#475569" fontSize={9} fontWeight={700} tickLine={false} axisLine={false} />
+                <YAxis stroke="#475569" fontSize={9} fontWeight={700} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.02)" }} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {priorityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`url(#grad-${entry.name})`} />
+                    <Cell key={`cell-${index}`} fill={entry.fill} stroke="transparent" />
                   ))}
                 </Bar>
               </BarChart>
@@ -485,32 +428,33 @@ const AdminDashboard = () => {
         </div>
 
         {/* Incident Timeline Trend */}
-        <div className="rounded-2xl bg-gray-900/70 border border-white/8 backdrop-blur-sm overflow-hidden">
-          <div className="px-5 pt-5 pb-3 border-b border-white/6">
-            <h3 className="text-sm font-bold text-white">Incident Timeline Trend</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Daily emergency call volume — past 7 days</p>
+        <div className="rounded-xl bg-[#0d1222]/85 backdrop-blur-md border border-white/5 overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-white/5">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Incident Timeline Trend</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Daily incoming emergency operations logs</p>
           </div>
           <div className="p-4 h-60">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="date" stroke="#4B5563" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} />
-                <YAxis stroke="#4B5563" fontSize={10} fontWeight={600} tickLine={false} axisLine={false} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="date" stroke="#475569" fontSize={9} fontWeight={700} tickLine={false} axisLine={false} />
+                <YAxis stroke="#475569" fontSize={9} fontWeight={700} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
                   dataKey="Emergencies"
-                  stroke="#6366F1"
-                  strokeWidth={2.5}
+                  name="Incidents"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
                   fill="url(#areaGrad)"
-                  dot={{ fill: "#6366F1", r: 4, strokeWidth: 2, stroke: "#1e1b4b" }}
-                  activeDot={{ r: 6, stroke: "#6366F1", strokeWidth: 2 }}
+                  dot={{ fill: "#3B82F6", r: 3, strokeWidth: 1, stroke: "#0B1120" }}
+                  activeDot={{ r: 5, stroke: "#3B82F6", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -518,17 +462,17 @@ const AdminDashboard = () => {
         </div>
 
         {/* Status Distribution */}
-        <div className="rounded-2xl bg-gray-900/70 border border-white/8 backdrop-blur-sm overflow-hidden">
-          <div className="px-5 pt-5 pb-3 border-b border-white/6 flex items-center justify-between">
+        <div className="rounded-xl bg-[#0d1222]/85 backdrop-blur-md border border-white/5 overflow-hidden">
+          <div className="px-5 pt-5 pb-3 border-b border-white/5 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white">Encounter Statuses</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Real-time status tracking of all responses</p>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Encounter Statuses</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Real-time dispatcher logs status breakdown</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               {statusData.map((d, i) => (
-                <div key={i} className="flex items-center gap-1">
+                <div key={i} className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                  <span className="text-[10px] text-gray-400 font-medium">{d.name}</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{d.name}</span>
                 </div>
               ))}
             </div>
@@ -542,11 +486,9 @@ const AdminDashboard = () => {
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
-                    outerRadius={90}
-                    paddingAngle={4}
+                    outerRadius={85}
+                    paddingAngle={3}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
                     style={{ outline: "none" }}
                   >
                     {statusData.map((entry, index) => (
@@ -557,109 +499,148 @@ const AdminDashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-gray-600">
-                <Inbox className="h-8 w-8" />
-                <p className="text-xs font-medium">No status data</p>
+              <div className="flex flex-col items-center gap-2 text-slate-600">
+                <Inbox className="h-8 w-8 text-slate-700" />
+                <p className="text-xs font-semibold">No operational queue data</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Incident Registry Table */}
-      <div className="rounded-2xl bg-gray-900/70 border border-white/8 backdrop-blur-sm overflow-hidden">
-        {/* Table Header */}
-        <div className="px-5 pt-5 pb-4 border-b border-white/6">
+      {/* Centralized Incident Registry */}
+      <div className="rounded-xl bg-[#0d1222]/85 backdrop-blur-md border border-white/5 overflow-hidden">
+        {/* Table Toolbar */}
+        <div className="px-5 pt-5 pb-4 border-b border-white/5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-white">Centralized Incident Registry</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Telemetry log of all security, health & rescue cases</p>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Centralized Incident Registry</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Real-time log of security, medical, and fire dispatch entries</p>
             </div>
             <button
               onClick={fetchDashboardData}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 transition-all text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition-all text-[10px] font-bold uppercase tracking-wider"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Refresh Logs
+              Sync Logs
             </button>
           </div>
 
-          {/* Filters */}
+          {/* Grid Filters */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4">
             <div className="relative lg:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
               <input
-                placeholder="Search incident, location, citizen..."
+                placeholder="Search citizen, location, details..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 h-9 bg-gray-800/60 border border-white/8 rounded-xl text-xs text-gray-200 placeholder-gray-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+                className="w-full pl-9 pr-3 h-9 bg-[#1F2937]/30 border border-white/10 rounded-lg text-xs text-white placeholder-slate-600 outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
               />
             </div>
 
             {[
-              { value: selectedDept, setter: setSelectedDept, opts: ["All Departments", "Police", "Fire", "Hospital"], vals: ["All", "Police", "Fire", "Hospital"] },
+              { value: selectedDept, setter: setSelectedDept, opts: ["All Departments", "Police Force", "Fire Brigade", "Hospital EMS"], vals: ["All", "Police", "Fire", "Hospital"] },
               { value: selectedPriority, setter: setSelectedPriority, opts: ["All Priorities", "Critical", "High", "Medium", "Low"], vals: ["All", "Critical", "High", "Medium", "Low"] },
-              { value: selectedStatus, setter: setSelectedStatus, opts: ["All Statuses", "Pending", "In Progress", "Resolved"], vals: ["All", "Pending", "InProgress", "Resolved"] },
-              { value: selectedSource, setter: setSelectedSource, opts: ["All Sources", "🌐 Web Form", "📞 Phone Call"], vals: ["All", "web", "call"] },
+              { value: selectedStatus, setter: setSelectedStatus, opts: ["All Statuses", "Pending Queue", "In Progress", "Case Resolved"], vals: ["All", "Pending", "InProgress", "Resolved"] },
+              { value: selectedSource, setter: setSelectedSource, opts: ["All Sources", "🌐 Web Portal", "📞 Telephony"], vals: ["All", "web", "call"] },
             ].map((f, i) => (
               <select
                 key={i}
                 value={f.value}
                 onChange={(e) => f.setter(e.target.value)}
-                className="h-9 bg-gray-800/60 border border-white/8 rounded-xl px-3 text-xs text-gray-300 outline-none focus:border-indigo-500/50 transition-all"
+                className="h-9 bg-[#1F2937]/30 border border-white/10 rounded-lg px-2.5 text-xs text-slate-300 outline-none focus:border-blue-500/50 transition-all cursor-pointer"
               >
                 {f.opts.map((opt, j) => (
-                  <option key={j} value={f.vals[j]}>{opt}</option>
+                  <option key={j} value={f.vals[j]} className="bg-[#111827] text-white">{opt}</option>
                 ))}
               </select>
             ))}
           </div>
         </div>
 
-        {/* Table */}
+        {/* Interactive Data Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-white/5">
-                {["Citizen", "Location", "Department", "Priority", "Status", "Source", "Time Logged", "Actions"].map((h, i) => (
-                  <th key={i} className={`px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest ${i === 7 ? "text-right" : ""}`}>{h}</th>
+              <tr className="border-b border-white/5 bg-white/[0.01]">
+                {["ID/Name", "Location Details", "Unit Assigned", "Priority", "Encounter Status", "Report Type", "Timestamp", "Details"].map((h, i) => (
+                  <th key={i} className={`px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest ${i === 7 ? "text-right" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/4">
+            <tbody className="divide-y divide-white/5">
               {filteredCases.length > 0 ? (
                 filteredCases.map((item) => (
-                  <tr key={item._id} className="group hover:bg-white/3 transition-colors">
-                    <td className="px-4 py-3.5 text-xs font-bold text-white">{item.name}</td>
-                    <td className="px-4 py-3.5 max-w-[180px]">
+                  <tr key={item._id} className="group hover:bg-white/[0.02] transition-all">
+                    <td className="px-4 py-3.5">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs text-gray-300 font-medium truncate">{item.address || item.location}</span>
+                        <span className="text-xs font-bold text-white">{item.name}</span>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase">#{item._id.slice(-6)}</span>
+                          {item.phone && (
+                            <span className="text-[9px] font-bold text-blue-400/90 flex items-center gap-0.5" title="Telephone Number">
+                              📞 {item.phone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 max-w-[200px]">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-slate-300 truncate font-semibold">{item.address || item.location}</span>
                         {item.landmark && (
-                          <span className="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5 w-fit">
-                            📍 {item.landmark}
+                          <span className="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5 w-fit uppercase">
+                            Near {item.landmark}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold text-white uppercase tracking-wider"
-                        style={{
-                          backgroundColor: item.department === "Police" ? `${COLORS.Police}25` : item.department === "Fire" ? `${COLORS.Fire}25` : `${COLORS.Hospital}25`,
-                          color: item.department === "Police" ? COLORS.Police : item.department === "Fire" ? COLORS.Fire : COLORS.Hospital,
-                          border: `1px solid ${item.department === "Police" ? `${COLORS.Police}40` : item.department === "Fire" ? `${COLORS.Fire}40` : `${COLORS.Hospital}40`}`,
-                        }}
-                      >
-                        {item.department === "Police" ? "🛡" : item.department === "Fire" ? "🔥" : "🏥"} {item.department === "Fire" ? "Fire Dept" : item.department}
-                      </span>
+                      {(!item.department || item.department === "Unknown" || item.department.toLowerCase() === "unknown") ? (
+                        <select
+                          disabled={updatingStatus}
+                          value="Unknown"
+                          onChange={async (e) => {
+                            const newDept = e.target.value;
+                            if (newDept !== "Unknown") {
+                              try {
+                                const response = await updateEmergencyStatus(item._id, undefined, newDept);
+                                if (response.success) {
+                                  toast.success("Department unit assigned successfully");
+                                  fetchDashboardData();
+                                }
+                              } catch (err) {
+                                toast.error("Failed to assign department");
+                              }
+                            }
+                          }}
+                          className="h-7 bg-amber-500/10 border border-amber-500/30 rounded px-2 text-[9px] font-bold text-amber-500 outline-none focus:border-amber-500 transition-all cursor-pointer uppercase tracking-wider"
+                        >
+                          <option value="Unknown" className="bg-[#111827] text-amber-500">⚠️ Unassigned</option>
+                          <option value="Police" className="bg-[#111827] text-[#3B82F6]">🚓 Police</option>
+                          <option value="Fire Brigade" className="bg-[#111827] text-[#EF4444]">🚒 Fire Brigade</option>
+                          <option value="Hospital" className="bg-[#111827] text-[#10B981]">🏥 Hospital EMS</option>
+                        </select>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
+                          style={{
+                            backgroundColor: item.department === "Police" ? "rgba(59,130,246,0.1)" : (item.department === "Fire" || item.department === "Fire Brigade") ? "rgba(239,110,110,0.1)" : "rgba(16,185,129,0.1)",
+                            color: item.department === "Police" ? COLORS.Police : (item.department === "Fire" || item.department === "Fire Brigade") ? COLORS.Fire : COLORS.Hospital,
+                            border: `1px solid ${item.department === "Police" ? "rgba(59,130,246,0.2)" : (item.department === "Fire" || item.department === "Fire Brigade") ? "rgba(239,110,110,0.2)" : "rgba(16,185,129,0.2)"}`,
+                          }}
+                        >
+                          {item.department === "Police" ? "🚓" : (item.department === "Fire" || item.department === "Fire Brigade") ? "🚒" : "🏥"} {item.department === "Fire" || item.department === "Fire Brigade" ? "Fire Dept" : item.department}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5">
                       <span
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                        className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
                         style={{
-                          backgroundColor: `${COLORS[item.priority]}20`,
-                          color: COLORS[item.priority] || "#9CA3AF",
-                          border: `1px solid ${COLORS[item.priority]}35`,
+                          backgroundColor: `${COLORS[item.priority]}12`,
+                          color: COLORS[item.priority],
+                          border: `1px solid ${COLORS[item.priority]}25`,
                         }}
                       >
                         {item.priority}
@@ -667,11 +648,11 @@ const AdminDashboard = () => {
                     </td>
                     <td className="px-4 py-3.5">
                       <span
-                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                        className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
                         style={{
-                          backgroundColor: `${COLORS[item.status]}20`,
-                          color: COLORS[item.status] || "#9CA3AF",
-                          border: `1px solid ${COLORS[item.status]}35`,
+                          backgroundColor: `${COLORS[item.status]}12`,
+                          color: COLORS[item.status],
+                          border: `1px solid ${COLORS[item.status]}25`,
                         }}
                       >
                         {item.status === "InProgress" ? "In Progress" : item.status}
@@ -688,15 +669,15 @@ const AdminDashboard = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-gray-500 font-medium">
+                    <td className="px-4 py-3.5 text-xs text-slate-500 font-semibold font-mono">
                       {new Date(item.createdAt).toLocaleString("en-US", { hour: "2-digit", minute: "2-digit", month: "short", day: "numeric" })}
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <button
                         onClick={() => setSelectedCase(item)}
-                        className="flex items-center gap-1.5 ml-auto px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-all text-[10px] font-bold"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition-all text-[10px] font-bold uppercase tracking-wider"
                       >
-                        <Eye className="h-3 w-3" /> Details
+                        <Eye className="h-3 w-3" /> Audit
                       </button>
                     </td>
                   </tr>
@@ -705,11 +686,11 @@ const AdminDashboard = () => {
                 <tr>
                   <td colSpan={8} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center">
-                        <Inbox className="h-6 w-6 text-gray-600" />
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                        <Inbox className="h-5 w-5 text-slate-600" />
                       </div>
-                      <p className="text-sm font-medium text-gray-600">No matching incidents found</p>
-                      <p className="text-xs text-gray-700">Try adjusting your filters or search query</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No cases matches filters</p>
+                      <p className="text-[10px] text-slate-500">Modify your search keywords or selection toggles</p>
                     </div>
                   </td>
                 </tr>
@@ -718,80 +699,142 @@ const AdminDashboard = () => {
           </table>
         </div>
 
-        {/* Table Footer */}
-        <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
-          <p className="text-xs text-gray-600 font-medium">
-            Showing <span className="text-gray-400 font-bold">{filteredCases.length}</span> of <span className="text-gray-400 font-bold">{allCases.length}</span> incidents
+        {/* Table Status Bar */}
+        <div className="px-5 py-3.5 border-t border-white/5 bg-white/[0.005] flex items-center justify-between">
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            Showing <span className="text-slate-400 font-black">{filteredCases.length}</span> of <span className="text-slate-400 font-black">{allCases.length}</span> recorded logs
           </p>
           <div className="flex items-center gap-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${socketConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
-            <span className="text-[10px] text-gray-600 font-medium">{socketConnected ? "Live sync active" : "Offline"}</span>
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{socketConnected ? "Live network active" : "Offline"}</span>
           </div>
         </div>
       </div>
 
-      {/* Case Details Modal */}
+      {/* Case Details Audit Modal */}
       {selectedCase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="bg-gray-900 rounded-2xl border border-white/10 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-[#111827] rounded-2xl border border-white/10 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="p-5 border-b border-white/8 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 flex items-center justify-between">
+            <div className="p-5 border-b border-white/5 bg-[#1F2937]/20 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">
-                  Emergency Report — ID: {selectedCase._id.slice(-6).toUpperCase()}
+                <span className="text-[9px] font-mono text-blue-400 uppercase tracking-widest block mb-0.5">
+                  Registry Incident log — #{selectedCase._id.slice(-6)}
                 </span>
-                <h3 className="text-base font-bold text-white">Incident Details & Dispatch Status</h3>
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Case Audit Console</h3>
               </div>
               <button
                 onClick={() => setSelectedCase(null)}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all text-lg font-bold"
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all text-sm font-bold"
               >
-                ×
+                ✕
               </button>
             </div>
 
-            {/* Modal Content */}
+            {/* Modal Scroll Container */}
             <div className="p-5 overflow-y-auto space-y-5 flex-1">
-              {/* Primary Info */}
-              <div className="grid grid-cols-3 gap-4 bg-gray-800/60 rounded-xl p-4 border border-white/6">
-                {[
-                  { label: "Citizen Name", val: selectedCase.name },
-                  { label: "Phone Number", val: selectedCase.phone || "Not provided" },
-                  { label: "Coordinates", val: selectedCase.location || "N/A" },
-                ].map((f, i) => (
-                  <div key={i}>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">{f.label}</span>
-                    <span className="text-sm font-bold text-white">{f.val}</span>
+
+              {/* ⚠️ UNKNOWN DEPARTMENT ALERT — Action Required */}
+              {(!selectedCase.department || selectedCase.department === 'Unknown' || selectedCase.department.toLowerCase() === 'unknown') && (
+                <div className="rounded-xl border border-amber-500/40 bg-amber-500/[0.07] overflow-hidden">
+                  <div className="px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
+                    <AlertOctagon className="h-4 w-4 text-amber-400 animate-pulse" />
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Unit Unassigned — Admin Action Required</span>
                   </div>
-                ))}
+                  <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    {/* Phone Number Call CTA */}
+                    <div className="flex-1">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Citizen Contact Number</p>
+                      {selectedCase.phone ? (
+                        <a
+                          href={`tel:${selectedCase.phone}`}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all group"
+                        >
+                          <PhoneCall className="h-4 w-4 group-hover:animate-pulse" />
+                          <span className="text-sm font-black tracking-wide">{selectedCase.phone}</span>
+                          <span className="text-[8px] font-bold text-emerald-300/60 uppercase ml-1">Tap to Call</span>
+                        </a>
+                      ) : (
+                        <span className="text-xs font-bold text-red-400">No phone number recorded</span>
+                      )}
+                    </div>
+
+                    {/* Department Assignment Selector */}
+                    <div className="flex-1">
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-1">Assign Responding Unit</p>
+                      <div className="flex items-center gap-2">
+                        <select
+                          disabled={assigningDept}
+                          defaultValue=""
+                          onChange={(e) => {
+                            if (e.target.value) handleAssignDepartment(selectedCase._id, e.target.value);
+                          }}
+                          className="h-9 flex-1 bg-[#1F2937]/50 border border-amber-500/30 focus:border-amber-500 rounded-lg px-2.5 text-xs text-amber-400 font-bold outline-none transition-all cursor-pointer uppercase tracking-wider"
+                        >
+                          <option value="" className="bg-[#111827] text-slate-400">— Select Unit —</option>
+                          <option value="Police" className="bg-[#111827] text-[#3B82F6]">🚓 Police Force</option>
+                          <option value="Fire Brigade" className="bg-[#111827] text-[#EF4444]">🚒 Fire Brigade</option>
+                          <option value="Hospital" className="bg-[#111827] text-[#10B981]">🏥 Hospital EMS</option>
+                        </select>
+                        {assigningDept && <Loader2 className="h-4 w-4 text-amber-400 animate-spin" />}
+                      </div>
+                      <p className="text-[8px] text-amber-400/50 mt-1 font-medium">Contact the citizen before assigning if needed</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Core Information Panel */}
+              <div className="grid grid-cols-3 gap-4 bg-[#1F2937]/20 rounded-xl p-4 border border-white/5">
+                <div>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Caller Name</span>
+                  <span className="text-xs font-bold text-white truncate block">{selectedCase.name}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Telephone Number</span>
+                  {selectedCase.phone ? (
+                    <a href={`tel:${selectedCase.phone}`} className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1">
+                      <PhoneCall className="h-3 w-3" />
+                      {selectedCase.phone}
+                    </a>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-500">Not recorded</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">GPS Coordinates</span>
+                  <span className="text-xs font-bold text-white truncate block">{selectedCase.location || 'N/A'}</span>
+                </div>
               </div>
 
               {/* Location Intelligence */}
               {(selectedCase.address || selectedCase.area || selectedCase.city || selectedCase.landmark) && (
-                <div className="rounded-xl border border-white/8 overflow-hidden">
-                  <div className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 px-4 py-2.5 flex items-center justify-between border-b border-white/6">
-                    <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">AI Location Intelligence</span>
-                    <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">EXTRACTED ADDRESS</span>
+                <div className="rounded-xl border border-white/5 overflow-hidden">
+                  <div className="bg-[#1F2937]/30 px-4 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> AI Geospacial Intel
+                    </span>
+                    <span className="text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">AUTO-EXTRACTED</span>
                   </div>
-                  <div className="p-4 space-y-3 bg-gray-800/40">
+                  <div className="p-4 space-y-3.5 bg-[#1F2937]/10">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="col-span-3">
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Full Address</span>
-                        <span className="text-sm font-bold text-white">{selectedCase.address || "N/A"}</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Full Extracted Address</span>
+                        <span className="text-xs font-bold text-white leading-relaxed">{selectedCase.address || "N/A"}</span>
                       </div>
                       {[
-                        { label: "Area / Sector", val: selectedCase.area },
+                        { label: "Area Sector", val: selectedCase.area },
                         { label: "City", val: selectedCase.city },
-                        { label: "Landmark", val: selectedCase.landmark },
+                        { label: "Landmark Target", val: selectedCase.landmark },
                       ].map((f, i) => (
                         <div key={i}>
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">{f.label}</span>
-                          <span className={`text-xs font-semibold ${i === 2 ? "text-purple-400" : "text-gray-300"}`}>{f.val || "N/A"}</span>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{f.label}</span>
+                          <span className={`text-xs font-bold ${i === 2 ? "text-purple-400" : "text-slate-300"}`}>{f.val || "N/A"}</span>
                         </div>
                       ))}
                     </div>
-                    {/* Map */}
-                    <div className="w-full h-52 rounded-xl overflow-hidden border border-white/8 mt-2">
+                    {/* Embedded Interactive Map */}
+                    <div className="w-full h-44 rounded-lg overflow-hidden border border-white/5 mt-2 bg-[#0B1120]">
                       <iframe
                         width="100%"
                         height="100%"
@@ -800,43 +843,50 @@ const AdminDashboard = () => {
                             ? `https://maps.google.com/maps?q=${selectedCase.latitude},${selectedCase.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
                             : `https://maps.google.com/maps?q=${encodeURIComponent(selectedCase.address || selectedCase.location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
                         }
-                        frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" title="Map"
+                        frameBorder="0" scrolling="no" marginHeight="0" marginWidth="0" title="Geoloc Map"
+                        className="opacity-80"
                       />
                     </div>
                     {selectedCase.latitude && selectedCase.longitude && (
                       <p className="text-[9px] text-emerald-400 font-bold flex items-center justify-end gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        High-accuracy GPS coordinates captured
+                        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                        Accurate cellular GPS signal verified
                       </p>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* Status & Department Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-800/40 rounded-xl border border-white/6">
+              {/* Status Update Options */}
+              <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-[#1F2937]/15 rounded-xl border border-white/5">
                 <div className="flex items-center gap-4">
                   <div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Unit</span>
-                    <span
-                      className="inline-block px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
-                      style={{
-                        backgroundColor: `${selectedCase.department === "Police" ? COLORS.Police : selectedCase.department === "Fire" ? COLORS.Fire : COLORS.Hospital}20`,
-                        color: selectedCase.department === "Police" ? COLORS.Police : selectedCase.department === "Fire" ? COLORS.Fire : COLORS.Hospital,
-                        border: `1px solid ${selectedCase.department === "Police" ? COLORS.Police : selectedCase.department === "Fire" ? COLORS.Fire : COLORS.Hospital}35`,
-                      }}
-                    >
-                      {selectedCase.department === "Fire" ? "Fire Dept" : selectedCase.department}
-                    </span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Assigned Unit</span>
+                    {(!selectedCase.department || selectedCase.department === 'Unknown' || selectedCase.department.toLowerCase() === 'unknown') ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        <AlertOctagon className="h-2.5 w-2.5" /> Unassigned
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-block px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
+                        style={{
+                          backgroundColor: selectedCase.department === 'Police' ? 'rgba(59,130,246,0.1)' : (selectedCase.department === 'Fire' || selectedCase.department === 'Fire Brigade') ? 'rgba(239,110,110,0.1)' : 'rgba(16,185,129,0.1)',
+                          color: selectedCase.department === 'Police' ? COLORS.Police : (selectedCase.department === 'Fire' || selectedCase.department === 'Fire Brigade') ? COLORS.Fire : COLORS.Hospital,
+                          border: `1px solid ${selectedCase.department === 'Police' ? 'rgba(59,130,246,0.2)' : (selectedCase.department === 'Fire' || selectedCase.department === 'Fire Brigade') ? 'rgba(239,110,110,0.2)' : 'rgba(16,185,129,0.2)'}`,
+                        }}
+                      >
+                        {(selectedCase.department === 'Fire' || selectedCase.department === 'Fire Brigade') ? '🚒 Fire Brigade' : selectedCase.department === 'Police' ? '🚓 Police' : '🏥 Hospital EMS'}
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Priority</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Threat Priority</span>
                     <span
-                      className="inline-block px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                      className="inline-block px-2.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider"
                       style={{
-                        backgroundColor: `${COLORS[selectedCase.priority]}20`,
-                        color: COLORS[selectedCase.priority] || "#9CA3AF",
-                        border: `1px solid ${COLORS[selectedCase.priority]}35`,
+                        backgroundColor: `${COLORS[selectedCase.priority]}12`,
+                        color: COLORS[selectedCase.priority],
+                        border: `1px solid ${COLORS[selectedCase.priority]}25`,
                       }}
                     >
                       {selectedCase.priority}
@@ -844,92 +894,92 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Update Status</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Update Status</span>
                   <select
                     disabled={updatingStatus}
                     value={selectedCase.status}
                     onChange={(e) => handleStatusChange(selectedCase._id, e.target.value)}
-                    className="h-9 bg-gray-700/60 border border-white/10 rounded-xl px-3 text-xs text-gray-200 font-bold outline-none focus:border-indigo-500/50 transition-all"
+                    className="h-8 bg-[#1F2937]/55 border border-white/10 rounded-lg px-2.5 text-xs text-white font-bold outline-none focus:border-blue-500/50 transition-all cursor-pointer"
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="InProgress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
+                    <option value="Pending" className="bg-[#111827]">Pending</option>
+                    <option value="InProgress" className="bg-[#111827]">In Progress</option>
+                    <option value="Resolved" className="bg-[#111827]">Resolved</option>
                   </select>
                 </div>
               </div>
 
-              {/* Description */}
+              {/* Citizen Narrative */}
               <div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Incident Description</span>
-                <p className="p-4 bg-gray-800/60 border border-white/6 rounded-xl text-xs leading-relaxed text-gray-300">
-                  {selectedCase.message || selectedCase.description}
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Narrative Transcript</span>
+                <p className="p-4 bg-[#1F2937]/10 border border-white/5 rounded-xl text-xs leading-relaxed text-slate-300 font-semibold">
+                  "{selectedCase.message || selectedCase.description}"
                 </p>
               </div>
 
-              {/* Voice Recording */}
+              {/* Call Telephony Recording */}
               {selectedCase.source === "call" && (
                 <div className="rounded-xl border border-violet-500/20 overflow-hidden">
                   <div className="bg-violet-500/10 px-4 py-2.5 flex items-center justify-between border-b border-violet-500/20">
-                    <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Mic className="h-3.5 w-3.5" /> Caller Voice Recording
+                    <span className="text-[9px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1">
+                      <Mic className="h-3.5 w-3.5" /> Call Telephony audio log
                     </span>
-                    <span className="text-[9px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full">PHONE CALL</span>
+                    <span className="text-[9px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded">RECORDING</span>
                   </div>
-                  <div className="p-4 bg-gray-800/40">
+                  <div className="p-4 bg-[#1F2937]/10 flex flex-col gap-2">
                     {selectedCase.recordingUrl ? (
-                      <audio controls src={selectedCase.recordingUrl} className="w-full" />
+                      <audio controls src={selectedCase.recordingUrl} className="w-full h-8" />
                     ) : (
-                      <p className="text-xs text-violet-400 font-semibold">Recording is being processed...</p>
+                      <p className="text-xs text-violet-400 font-bold">Audio stream processing...</p>
                     )}
-                    <p className="text-[10px] text-gray-500 mt-2">
-                      Caller: <strong className="text-gray-400">{selectedCase.callerPhone || selectedCase.phone}</strong>
-                    </p>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase">
+                      Phone Number: {selectedCase.phone}
+                    </span>
                   </div>
                 </div>
               )}
 
-              {/* AI Analysis */}
+              {/* AI Dispatch Engine Analysis */}
               {selectedCase.aiAnalysis && (
-                <div className="rounded-xl border border-indigo-500/20 overflow-hidden">
-                  <div className="bg-indigo-500/10 px-4 py-2.5 flex items-center justify-between border-b border-indigo-500/20">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">AI Dispatch Engine Analysis</span>
-                    <span className="text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">CLASSIFIED</span>
+                <div className="rounded-xl border border-blue-500/20 overflow-hidden">
+                  <div className="bg-blue-500/10 px-4 py-2.5 flex items-center justify-between border-b border-blue-500/20">
+                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">AI Classification Summary</span>
+                    <span className="text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded">RESOLVED</span>
                   </div>
-                  <div className="p-4 space-y-3.5 bg-gray-800/40">
+                  <div className="p-4 space-y-4 bg-[#1F2937]/10">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Category</span>
-                        <span className="text-sm font-bold text-white">{selectedCase.aiAnalysis.category}</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Classification Category</span>
+                        <span className="text-xs font-bold text-white uppercase">{selectedCase.aiAnalysis.category}</span>
                       </div>
                       <div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Confidence</span>
-                        <span className="text-sm font-bold text-indigo-400">{(selectedCase.aiAnalysis.confidence * 100).toFixed(1)}%</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Engine Confidence</span>
+                        <span className="text-xs font-bold text-blue-400 font-mono">{(selectedCase.aiAnalysis.confidence * 100).toFixed(1)}%</span>
                       </div>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Recommended Units</span>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Recommended Response Vehicles</span>
                       <div className="flex flex-wrap gap-1.5">
                         {selectedCase.aiAnalysis.recommendedUnits?.map((unit, idx) => (
-                          <span key={idx} className="bg-gray-700/60 border border-white/10 text-gray-300 text-[10px] font-bold px-2.5 py-0.5 rounded-lg">{unit}</span>
+                          <span key={idx} className="bg-[#1F2937] border border-white/5 text-slate-300 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">{unit}</span>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5">Dispatch Reason</span>
-                      <p className="text-xs text-gray-400 italic leading-relaxed">{selectedCase.aiAnalysis.reason}</p>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Dispatch Decision Logic</span>
+                      <p className="text-xs text-slate-400 italic leading-relaxed font-medium">"{selectedCase.aiAnalysis.reason}"</p>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-white/8 bg-gray-900/50 flex justify-end">
+            {/* Modal Actions */}
+            <div className="p-4 border-t border-white/5 bg-[#1F2937]/20 flex justify-end">
               <button
                 onClick={() => setSelectedCase(null)}
-                className="px-5 py-2 rounded-xl bg-gray-800 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all text-xs font-semibold"
+                className="px-4 py-2 rounded-lg bg-white/5 border border-white/5 text-slate-300 hover:bg-white/10 hover:text-white transition-all text-xs font-semibold uppercase tracking-wider"
               >
-                Close View
+                Close Audit View
               </button>
             </div>
           </div>
