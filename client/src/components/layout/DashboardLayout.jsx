@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -18,13 +18,45 @@ import {
   Radio,
   ChevronRight,
   Zap,
+  Search,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  ChevronDown,
+  Building,
 } from "lucide-react";
+import {
+  BellIcon,
+  ArrowDown01Icon,
+} from "../watermelon/WatermelonIcons";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
-const DashboardLayout = ({ children, title, headerActions }) => {
+const DashboardLayout = ({
+  children,
+  title,
+  headerActions,
+  audioEnabled,
+  onToggleAudio,
+  searchQuery,
+  onSearchChange,
+  notifications = [],
+}) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -40,14 +72,23 @@ const DashboardLayout = ({ children, title, headerActions }) => {
     return currentTab === itemTab;
   };
 
+  const roleConfig = {
+    police:   { label: "Police Dept",  color: "#3B82F6", bg: "rgba(59,130,246,0.12)", icon: Shield },
+    fire:     { label: "Fire Brigade", color: "#EF4444", bg: "rgba(239,68,68,0.12)", icon: Flame },
+    hospital: { label: "Hospital EMS", color: "#10B981", bg: "rgba(16,185,129,0.12)", icon: Activity },
+    admin:    { label: "Super Admin",  color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", icon: Zap },
+  };
+  const role = roleConfig[user?.role] || { label: user?.role || "Operator", color: "#6B7280", bg: "rgba(107,114,128,0.12)", icon: Shield };
+  const UserRoleIcon = role.icon;
+
   const getNavItems = () => {
     if (!user) return [];
     const items = [];
 
     if (user.role === "admin") {
       items.push(
-        { label: "Command Overview", path: "/admin", icon: LayoutDashboard, accent: "#6366F1" },
-        { label: "Analytics", path: "/analytics", icon: BarChart3, accent: "#8B5CF6" }
+        { label: "Central Command", path: "/admin", icon: LayoutDashboard, accent: "#8B5CF6" },
+        { label: "Analytics & Trends", path: "/analytics", icon: BarChart3, accent: "#8B5CF6" }
       );
     }
 
@@ -60,12 +101,12 @@ const DashboardLayout = ({ children, title, headerActions }) => {
 
     if (showPolice) {
       if (user.role === "admin") {
-        items.push({ label: "Police Dept.", path: "/police?tab=pending", icon: Shield, accent: "#2563EB", isHeader: true });
+        items.push({ label: "Police Dept", path: "/police?tab=pending", icon: Shield, accent: "#3B82F6", isHeader: true });
       }
       if (isPolicePage) {
         const sub = [
           { label: "Pending Queue", path: "/police?tab=pending", icon: Clock, accent: "#F59E0B", isSub: true },
-          { label: "Active Patrols", path: "/police?tab=active", icon: Shield, accent: "#2563EB", isSub: true },
+          { label: "Active Patrols", path: "/police?tab=active", icon: Shield, accent: "#3B82F6", isSub: true },
           { label: "Closed Logs", path: "/police?tab=resolved", icon: CheckCircle2, accent: "#22C55E", isSub: true },
         ];
         if (user.role === "police") return sub;
@@ -75,7 +116,7 @@ const DashboardLayout = ({ children, title, headerActions }) => {
 
     if (showFire) {
       if (user.role === "admin") {
-        items.push({ label: "Fire Dept.", path: "/fire?tab=pending", icon: Flame, accent: "#DC2626", isHeader: true });
+        items.push({ label: "Fire Dept", path: "/fire?tab=pending", icon: Flame, accent: "#EF4444", isHeader: true });
       }
       if (isFirePage) {
         const sub = [
@@ -90,7 +131,7 @@ const DashboardLayout = ({ children, title, headerActions }) => {
 
     if (showHospital) {
       if (user.role === "admin") {
-        items.push({ label: "Hospital Dept.", path: "/hospital?tab=pending", icon: Activity, accent: "#16A34A", isHeader: true });
+        items.push({ label: "Hospital EMS", path: "/hospital?tab=pending", icon: Activity, accent: "#10B981", isHeader: true });
       }
       if (isHospitalPage) {
         const sub = [
@@ -108,101 +149,138 @@ const DashboardLayout = ({ children, title, headerActions }) => {
 
   const navItems = getNavItems();
 
-  const roleConfig = {
-    police:   { label: "Police Dept",  color: "#2563EB", bg: "rgba(37,99,235,0.12)" },
-    fire:     { label: "Fire Brigade", color: "#DC2626", bg: "rgba(220,38,38,0.12)" },
-    hospital: { label: "Hospital EMS", color: "#16A34A", bg: "rgba(22,163,74,0.12)" },
-    admin:    { label: "Super Admin",  color: "#7C3AED", bg: "rgba(124,58,237,0.12)" },
-  };
-  const role = roleConfig[user?.role] || { label: user?.role, color: "#64748B", bg: "rgba(100,116,139,0.12)" };
-
   return (
-    <div className="min-h-screen flex" style={{ background: "#060913" }}>
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
+    <div className="min-h-screen flex bg-background text-foreground selection:bg-primary/20">
+      {/* Mobile Drawer Overlay */}
+      {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/80 z-40 lg:hidden backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* ── SIDEBAR ─────────────────────────────────────────── */}
+      {/* ── WATERMELON SIDEBAR ─────────────────────────────────────────── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[220px] flex flex-col
-          transform transition-transform duration-200 ease-in-out
-          lg:translate-x-0 lg:static lg:z-auto
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-        style={{
-          background: "#080c18",
-          borderRight: "1px solid rgba(255,255,255,0.04)",
-        }}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border/40 transition-all duration-300 ease-in-out lg:static lg:z-auto max-w-[85vw]",
+          sidebarCollapsed ? "w-[72px]" : "w-[240px]",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
       >
-        {/* Brand */}
-        <div className="flex items-center justify-between px-4 h-14"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-[#E8602E]/10 border border-[#E8602E]/25">
-              <Zap className="h-3.5 w-3.5 text-[#E8602E]" />
-            </div>
-            <div>
-              <p className="text-[13px] font-extrabold text-white leading-none tracking-tight">EMERGENCY</p>
-              <p className="text-[9px] font-bold mt-0.5 text-white/40" style={{ letterSpacing: "0.08em" }}>
-                COMMAND CENTER
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white"
+        {/* Brand Header */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-border/30 shrink-0">
+          <Link
+            to={user?.role === "admin" ? "/admin" : `/${user?.role}`}
+            className="flex items-center gap-2.5 overflow-hidden"
           >
-            <X className="h-3.5 w-3.5" />
+            <div
+              className="flex size-9 items-center justify-center rounded-xl shrink-0"
+              style={{
+                backgroundColor: `${role.color}15`,
+                border: `1px solid ${role.color}35`,
+                color: role.color,
+              }}
+            >
+              <Zap className="size-4.5" />
+            </div>
+            {!sidebarCollapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-black tracking-tight text-foreground leading-none">
+                  EMERGENCY
+                </span>
+                <span className="text-[9px] font-bold tracking-widest text-muted-foreground uppercase mt-0.5">
+                  COMMAND HQ
+                </span>
+              </div>
+            )}
+          </Link>
+
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-4" />
           </button>
         </div>
 
-        {/* User Profile */}
+        {/* User Identity Pill */}
         {user && (
-          <div className="px-3 py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-            <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg"
-              style={{ background: role.bg }}>
-              <div className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-black text-white flex-shrink-0"
-                style={{ background: role.color }}>
+          <div className="p-3 border-b border-border/30 shrink-0">
+            <div
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl p-2 transition-all",
+                sidebarCollapsed ? "justify-center" : "bg-secondary/60 border border-border/40"
+              )}
+            >
+              <div
+                className="flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-xs"
+                style={{ backgroundColor: role.color }}
+              >
                 {user.displayName?.charAt(0)?.toUpperCase() || "U"}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-white truncate leading-none">
-                  {user.displayName}
-                </p>
-                <p className="text-[10px] mt-0.5 font-semibold" style={{ color: role.color }}>
-                  {role.label}
-                </p>
-              </div>
+              {!sidebarCollapsed && (
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <p className="text-xs font-bold text-foreground truncate leading-none">
+                    {user.displayName || user.username}
+                  </p>
+                  <p
+                    className="text-[10px] font-semibold mt-1 flex items-center gap-1.5"
+                    style={{ color: role.color }}
+                  >
+                    <span
+                      className="size-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: role.color }}
+                    />
+                    <span className="truncate">{role.label}</span>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-          <p className="section-label px-2 mb-2">Navigation</p>
+        {/* Navigation Items */}
+        <nav className="flex-1 space-y-1 p-2.5 overflow-y-auto">
+          {!sidebarCollapsed && (
+            <p className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Command Modules
+            </p>
+          )}
+
           {navItems.map((item, idx) => {
             const isActive = isPathActive(item.path);
             const Icon = item.icon;
 
             if (item.isHeader && idx > 0) {
               return (
-                <div key={`${item.path}-${idx}`}>
-                  <div className="mx-2 my-2" style={{ height: "1px", background: "rgba(255,255,255,0.04)" }} />
+                <div key={`${item.path}-${idx}`} className="pt-2">
+                  <div className="h-[1px] bg-border/40 my-2 mx-1" />
                   <Link
                     to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className="sidebar-nav-item"
-                    style={isActive ? { background: `${item.accent}15`, color: item.accent } : {}}
-                  >
-                    {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r"
-                        style={{ background: item.accent }} />
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all group",
+                      isActive
+                        ? "bg-secondary text-foreground font-bold shadow-xs"
+                        : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                      sidebarCollapsed && "justify-center px-2"
                     )}
-                    <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: isActive ? item.accent : "#475569" }} />
-                    <span>{item.label}</span>
+                  >
+                    <Icon
+                      className="size-4 shrink-0 transition-transform group-hover:scale-110"
+                      style={{ color: isActive ? item.accent : undefined }}
+                    />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="truncate">{item.label}</span>
+                        {isActive && (
+                          <ChevronRight
+                            className="size-3.5 ml-auto"
+                            style={{ color: item.accent }}
+                          />
+                        )}
+                      </>
+                    )}
                   </Link>
                 </div>
               );
@@ -213,14 +291,28 @@ const DashboardLayout = ({ children, title, headerActions }) => {
                 <Link
                   key={`${item.path}-${idx}`}
                   to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className="sidebar-nav-item pl-7 text-[12px]"
-                  style={isActive ? { background: `${item.accent}12`, color: "#CBD5E1" } : {}}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center gap-2.5 py-1.5 text-xs font-medium rounded-lg transition-all",
+                    sidebarCollapsed ? "justify-center px-2" : "pl-7 pr-3",
+                    isActive
+                      ? "text-foreground font-bold bg-secondary/80"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/40"
+                  )}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: isActive ? item.accent : "#334155" }} />
-                  <Icon className="h-3 w-3 flex-shrink-0" style={{ color: isActive ? item.accent : "#475569" }} />
-                  <span className={isActive ? "text-white font-medium" : ""}>{item.label}</span>
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full shrink-0 transition-all",
+                      isActive ? "scale-125" : "opacity-40"
+                    )}
+                    style={{ backgroundColor: isActive ? item.accent : "currentColor" }}
+                  />
+                  <Icon className="size-3.5 shrink-0" style={{ color: isActive ? item.accent : undefined }} />
+                  {!sidebarCollapsed && (
+                    <span className={cn("truncate", isActive ? "text-foreground font-semibold" : "")}>
+                      {item.label}
+                    </span>
+                  )}
                 </Link>
               );
             }
@@ -229,78 +321,224 @@ const DashboardLayout = ({ children, title, headerActions }) => {
               <Link
                 key={`${item.path}-${idx}`}
                 to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className="sidebar-nav-item"
-                style={isActive ? { background: `${item.accent}15`, color: item.accent } : {}}
-              >
-                {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r"
-                    style={{ background: item.accent }} />
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group",
+                  isActive
+                    ? "bg-secondary text-foreground font-bold border border-border/50 shadow-xs"
+                    : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
+                  sidebarCollapsed && "justify-center px-2"
                 )}
-                <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color: isActive ? item.accent : "#475569" }} />
-                <span>{item.label}</span>
-                {isActive && <ChevronRight className="h-3 w-3 ml-auto" style={{ color: item.accent }} />}
+              >
+                <Icon
+                  className="size-4 shrink-0 transition-transform group-hover:scale-110"
+                  style={{ color: isActive ? item.accent : undefined }}
+                />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="truncate">{item.label}</span>
+                    {isActive && (
+                      <ChevronRight
+                        className="size-3.5 ml-auto"
+                        style={{ color: item.accent }}
+                      />
+                    )}
+                  </>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        {/* System Status + Logout */}
-        <div className="px-2 pb-3 space-y-1" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-          <div className="flex items-center gap-2 px-3 py-2 mt-2">
-            <span className="live-dot" />
-            <span className="text-[10px] font-medium" style={{ color: "#475569" }}>System Active</span>
-          </div>
+        {/* Sidebar Footer */}
+        <div className="p-3 border-t border-border/30 shrink-0 space-y-2">
+          {/* Audio siren toggle */}
+          {onToggleAudio && (
+            <button
+              onClick={onToggleAudio}
+              className={cn(
+                "flex w-full items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                audioEnabled
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-secondary text-muted-foreground hover:text-foreground",
+                sidebarCollapsed && "justify-center px-0"
+              )}
+            >
+              {audioEnabled ? (
+                <Volume2 className="size-3.5 shrink-0" />
+              ) : (
+                <VolumeX className="size-3.5 shrink-0" />
+              )}
+              {!sidebarCollapsed && (
+                <span className="truncate">
+                  {audioEnabled ? "Siren Alert ON" : "Siren Muted"}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Sign Out */}
           <button
             onClick={handleLogout}
-            className="sidebar-nav-item w-full text-left"
-            style={{ color: "#475569" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)"; e.currentTarget.style.color = "#EF4444"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = ""; e.currentTarget.style.color = "#475569"; }}
+            className={cn(
+              "flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground transition-all hover:bg-rose-500/10 hover:text-rose-400",
+              sidebarCollapsed && "justify-center px-0"
+            )}
           >
-            <LogOut className="h-3.5 w-3.5 flex-shrink-0" />
-            <span>Sign Out</span>
+            <LogOut className="size-3.5 shrink-0" />
+            {!sidebarCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT ─────────────────────────────────────── */}
+      {/* ── WATERMELON MAIN CONTAINER ─────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        {/* Top Bar */}
-        <header
-          className="sticky top-0 z-30 h-14 flex items-center px-4 lg:px-6 gap-4"
-          style={{
-            background: "rgba(6,9,19,0.85)",
-            borderBottom: "1px solid rgba(255,255,255,0.04)",
-            backdropFilter: "blur(12px)",
-          }}
-        >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-            style={{ color: "#64748B" }}
-          >
-            <Menu className="h-4 w-4" />
-          </button>
+        {/* Topbar */}
+        <header className="sticky top-0 z-30 h-16 flex items-center justify-between px-4 lg:px-6 gap-3 bg-card/85 border-b border-border/40 backdrop-blur-xl shrink-0">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden text-muted-foreground hover:text-foreground"
+            >
+              <Menu className="size-5" />
+            </Button>
 
-          <div className="flex items-center gap-2">
-            <h2 className="text-[14px] font-semibold text-white truncate">{title || "Dashboard"}</h2>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:flex size-8 items-center justify-center rounded-lg border border-border/40 text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <ArrowDown01Icon className={cn("size-4 transition-transform", sidebarCollapsed ? "-rotate-90" : "rotate-90")} />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground tracking-tight truncate">
+                {title || "Emergency Operations Command"}
+              </h2>
+            </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.15)" }}>
-              <Radio className="h-3 w-3" style={{ color: "#22C55E" }} />
-              <span className="text-[10px] font-semibold hidden sm:inline" style={{ color: "#22C55E", letterSpacing: "0.06em" }}>
+          {/* Right Header Actions */}
+          <div className="flex items-center gap-2.5 sm:gap-3 ml-auto">
+            {/* Live Socket Status */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <Radio className="size-3 animate-pulse" />
+              <span className="text-[10px] font-bold tracking-widest uppercase hidden sm:inline">
                 LIVE
               </span>
             </div>
+
+            {/* Department Switcher Dropdown (Admin) */}
+            {user?.role === "admin" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 px-2.5 text-xs font-semibold border-border/60 bg-secondary/40 hidden md:flex"
+                  >
+                    <Building className="size-3.5 text-muted-foreground" />
+                    <span>Switch Unit</span>
+                    <ChevronDown className="size-3 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 p-1.5 shadow-xl">
+                  <DropdownMenuLabel className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 py-1">
+                    Select Department
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => navigate("/admin")}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    <Zap className="size-3.5 text-purple-400" />
+                    <span>Central Command</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate("/police?tab=pending")}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    <Shield className="size-3.5 text-blue-400" />
+                    <span>Police Department</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate("/fire?tab=pending")}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    <Flame className="size-3.5 text-red-400" />
+                    <span>Fire Brigade</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate("/hospital?tab=pending")}
+                    className="cursor-pointer gap-2 text-xs font-semibold"
+                  >
+                    <Activity className="size-3.5 text-emerald-400" />
+                    <span>Hospital EMS</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Notifications Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon-sm"
+                  className="relative size-8 rounded-lg border border-border/40"
+                >
+                  <BellIcon className="size-4 text-foreground" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 size-2 rounded-full bg-rose-500 animate-ping" />
+                  )}
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 size-2 rounded-full bg-rose-500" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-2 shadow-2xl">
+                <DropdownMenuLabel className="flex items-center justify-between text-xs font-bold px-2 py-1">
+                  <span>Incident Notifications</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">
+                    {notifications.length} Active
+                  </span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-64 overflow-y-auto space-y-1 py-1">
+                  {notifications.length === 0 ? (
+                    <p className="text-center text-xs text-muted-foreground py-4">
+                      No new alerts
+                    </p>
+                  ) : (
+                    notifications.slice(0, 5).map((n, i) => (
+                      <DropdownMenuItem
+                        key={i}
+                        className="flex flex-col items-start gap-1 p-2 rounded-md cursor-default text-xs"
+                      >
+                        <div className="flex items-center justify-between w-full font-semibold">
+                          <span className="truncate">{n.title || n.name}</span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {n.time || "Now"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">
+                          {n.description || n.location}
+                        </p>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {headerActions}
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto animate-fade-in">
+        {/* Page Main Content */}
+        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
           {children}
         </main>
       </div>

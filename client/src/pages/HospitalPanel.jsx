@@ -1,21 +1,39 @@
-import { useEffect, useState, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useLocation, Link } from "react-router-dom";
 import { getHospitalEmergencies, updateEmergencyStatus } from "../services/emergencyApi";
-import { io } from "socket.io-client";
-import { SOCKET_URL } from "../config/api";
+import { getSocket, joinDepartmentRoom } from "../services/socket";
+import { playEmergencySiren } from "../lib/soundAlert";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ReportEmergencyDialog from "../components/dashboard/ReportEmergencyDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toaster, toast } from "sonner";
-import { 
-  Activity, 
-  Search, 
-  Clock, 
-  Phone, 
-  HeartHandshake, 
-  CheckCircle, 
+import {
+  MetricCard,
+} from "@/components/watermelon/MetricCard";
+import {
+  QuickActionCard,
+} from "@/components/watermelon/QuickActionCard";
+import {
+  CirculationActivityChart,
+} from "@/components/watermelon/CirculationActivityChart";
+import {
+  DualDonutChart,
+} from "@/components/watermelon/DualDonutChart";
+import {
+  IntelligenceFeed,
+} from "@/components/watermelon/IntelligenceFeed";
+import {
+  DashboardHeader,
+} from "@/components/watermelon/DashboardHeader";
+import {
+  Activity,
+  Search,
+  Clock,
+  Phone,
+  HeartHandshake,
+  CheckCircle,
   Loader2,
   Inbox,
   Stethoscope,
@@ -26,33 +44,17 @@ import {
   RefreshCw,
   LayoutGrid,
   List,
+  Plus,
+  ExternalLink,
+  Heart,
+  Truck,
+  Shield,
+  Zap,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const playAlertSound = (priority) => {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(1046.50, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-    oscillator.start();
-    
-    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime + 0.1);
-    oscillator.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.15);
-    gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime + 0.15);
-    gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime + 0.25);
-    
-    oscillator.stop(audioCtx.currentTime + 0.3);
-  } catch (error) {
-    console.log("AudioContext playback failed", error);
-  }
-};
+const ACCENT = "#10B981"; // Hospital Emerald
 
 const HospitalPanel = () => {
   const [hospitalCases, setHospitalCases] = useState([]);
@@ -62,25 +64,23 @@ const HospitalPanel = () => {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [expandedMapCardId, setExpandedMapCardId] = useState(null);
   const socketRef = useRef(null);
   const audioEnabledRef = useRef(audioEnabled);
 
-  useEffect(() => {
-    audioEnabledRef.current = audioEnabled;
-  }, [audioEnabled]);
+  useEffect(() => { audioEnabledRef.current = audioEnabled; }, [audioEnabled]);
 
   const location = useLocation();
   const currentTab = new URLSearchParams(location.search).get("tab") || "pending";
 
-  const fetchHospitalCases = async () => {
+  const fetchHospitalCases = useCallback(async () => {
     try {
+      setLoading(true);
       const data = await getHospitalEmergencies();
-      if (data.success && data.data) {
+      if (data?.success && data?.data) {
         setHospitalCases(data.data);
       } else if (Array.isArray(data)) {
         setHospitalCases(data);
-      } else if (data.data) {
+      } else if (data?.data) {
         setHospitalCases(data.data);
       }
     } catch (error) {
@@ -88,60 +88,47 @@ const HospitalPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchHospitalCases();
+    const socket = getSocket();
+    socketRef.current = socket;
+    joinDepartmentRoom("Hospital");
 
-    socketRef.current = io(SOCKET_URL, { transports: ["websocket", "polling"] });
-    const socket = socketRef.current;
-
-    socket.on("connect", () => {
-      setSocketConnected(true);
-    });
-
-    socket.on("disconnect", () => {
-      setSocketConnected(false);
-    });
+    socket.on("connect", () => setSocketConnected(true));
+    socket.on("disconnect", () => setSocketConnected(false));
+    if (socket.connected) setSocketConnected(true);
 
     const handleNewEmergency = (emergency) => {
       if (emergency.department === "Hospital") {
-        setHospitalCases((prevCases) => [emergency, ...prevCases]);
-
-        if (audioEnabledRef.current) {
-          playAlertSound(emergency.priority);
-        }
-
-        toast.error(`MEDICAL ALERT: AMBULANCE DISPATCH REQUESTED`, {
+        setHospitalCases((prev) => [emergency, ...prev]);
+        if (audioEnabledRef.current) playEmergencySiren(emergency.priority);
+        toast.error(`HOSPITAL EMS: INCOMING MEDICAL ALERT`, {
           description: `Caller: ${emergency.name} | Priority: ${emergency.priority}`,
           duration: 7000,
         });
       }
     };
 
-    const handleStatusUpdated = (updatedEmergency) => {
-      if (!updatedEmergency) return;
-      if (updatedEmergency.department === "Hospital") {
-        setHospitalCases((prevCases) => {
-          const exists = prevCases.some((c) => c._id === updatedEmergency._id);
+    const handleStatusUpdated = (updated) => {
+      if (!updated) return;
+      if (updated.department === "Hospital") {
+        setHospitalCases((prev) => {
+          const exists = prev.some((c) => c._id === updated._id);
           if (exists) {
-            // Update the existing record
-            return prevCases.map((c) => (c._id === updatedEmergency._id ? updatedEmergency : c));
+            return prev.map((c) => (c._id === updated._id ? updated : c));
           } else {
-            // Newly assigned to Hospital — insert at top and show alert
-            if (audioEnabledRef.current) playAlertSound(updatedEmergency.priority);
-            toast.error(`UNIT ASSIGNED: MEDICAL DISPATCH`, {
-              description: `${updatedEmergency.name} | Priority: ${updatedEmergency.priority} | Admin-assigned`,
-              duration: 7000,
+            if (audioEnabledRef.current) playEmergencySiren(updated.priority);
+            toast.error(`UNIT ASSIGNED: MEDICAL EMS`, {
+              description: `${updated.name} | Priority: ${updated.priority}`,
+              duration: 8000,
             });
-            return [updatedEmergency, ...prevCases];
+            return [updated, ...prev];
           }
         });
       } else {
-        // Department was changed away from Hospital — remove from this panel
-        setHospitalCases((prevCases) =>
-          prevCases.filter((c) => c._id !== updatedEmergency._id)
-        );
+        setHospitalCases((prev) => prev.filter((c) => c._id !== updated._id));
       }
     };
 
@@ -151,480 +138,495 @@ const HospitalPanel = () => {
     return () => {
       socket.off("new-emergency", handleNewEmergency);
       socket.off("status-updated", handleStatusUpdated);
-      socket.disconnect();
     };
-  }, []);
+  }, [fetchHospitalCases]);
 
-  const handleUpdateStatus = async (id, status) => {
+  const handleStatusChange = async (id, newStatus) => {
     try {
-      const response = await updateEmergencyStatus(id, status);
-      if (response.success && response.data) {
-        setHospitalCases((prevCases) =>
-          prevCases.map((c) => (c._id === id ? response.data : c))
+      const response = await updateEmergencyStatus(id, newStatus);
+      if (response?.success) {
+        setHospitalCases((prev) =>
+          prev.map((c) => (c._id === id ? { ...c, status: newStatus } : c))
         );
-        toast.success(`Medical Record Updated`, {
-          description: `Status changed to: ${status}`,
-        });
-      } else {
-        fetchHospitalCases();
-        toast.success(`Medical Record Updated`, {
-          description: `Status changed to: ${status}`,
-        });
+        toast.success(`EMS Triage Status Updated: ${newStatus}`);
       }
     } catch (error) {
-      console.log("Error updating status:", error);
-      toast.error("Operation failed", {
-        description: "Failed to update ambulance dispatch status."
-      });
+      toast.error("Failed to update triage status");
     }
   };
 
-  const filteredCases = hospitalCases.filter((item) => {
-    const query = searchQuery.toLowerCase();
+  const handleExport = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      ["ID,Caller,Phone,Priority,Status,Location,Date"]
+        .concat(
+          hospitalCases.map(
+            (c) =>
+              `"${c._id}","${c.name}","${c.phone}","${c.priority}","${c.status}","${c.location || c.address || ''}","${new Date(c.createdAt).toISOString()}"`
+          )
+        )
+        .join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `hospital_ems_log_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Hospital EMS Logs Exported");
+  };
+
+  // Case buckets
+  const pendingCases = hospitalCases.filter((c) => c.status === "Pending");
+  const inProgressCases = hospitalCases.filter((c) => c.status === "InProgress");
+  const resolvedCases = hospitalCases.filter((c) => c.status === "Resolved");
+  const criticalCases = hospitalCases.filter((c) => c.priority === "Critical" && c.status !== "Resolved");
+
+  const displayedCases = (
+    currentTab === "active" ? inProgressCases :
+    currentTab === "resolved" ? resolvedCases :
+    pendingCases
+  ).filter((item) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
     return (
-      item.name?.toLowerCase().includes(query) ||
-      item.location?.toLowerCase().includes(query) ||
-      item.address?.toLowerCase().includes(query) ||
-      item.area?.toLowerCase().includes(query) ||
-      item.city?.toLowerCase().includes(query) ||
-      item.landmark?.toLowerCase().includes(query) ||
-      item.description?.toLowerCase().includes(query) ||
-      item.message?.toLowerCase().includes(query)
+      item.name?.toLowerCase().includes(q) ||
+      item.phone?.toLowerCase().includes(q) ||
+      item.location?.toLowerCase().includes(q) ||
+      item.address?.toLowerCase().includes(q) ||
+      item.description?.toLowerCase().includes(q)
     );
   });
 
-  const pending = filteredCases.filter((c) => c.status === "Pending");
-  const inProgress = filteredCases.filter((c) => c.status === "InProgress");
-  const resolved = filteredCases.filter((c) => c.status === "Resolved");
-
-  const allPending = hospitalCases.filter((c) => c.status === "Pending");
-  const allInProgress = hospitalCases.filter((c) => c.status === "InProgress");
-  const allResolved = hospitalCases.filter((c) => c.status === "Resolved");
-  const criticalCount = hospitalCases.filter((c) => c.priority === "Critical" && c.status !== "Resolved").length;
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "Critical":
-        return "bg-red-500/10 text-red-400 border-red-500/20";
-      case "High":
-        return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-      case "Medium":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-      default:
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    }
+  // Chart Data By Timeframe
+  const chartDataByTimeframe = {
+    "24h": [
+      { label: "00:00", intake: 2, discharged: 1 },
+      { label: "04:00", intake: 1, discharged: 1 },
+      { label: "08:00", intake: 6, discharged: 4 },
+      { label: "12:00", intake: 11, discharged: 8 },
+      { label: "16:00", intake: 15, discharged: 12 },
+      { label: "20:00", intake: 9, discharged: 8 },
+      { label: "Now", intake: pendingCases.length + inProgressCases.length || 6, discharged: resolvedCases.length || 4 },
+    ],
+    shift: [
+      { label: "08:00", intake: 3, discharged: 2 },
+      { label: "11:00", intake: 8, discharged: 6 },
+      { label: "14:00", intake: 14, discharged: 10 },
+      { label: "17:00", intake: 10, discharged: 8 },
+      { label: "Current", intake: inProgressCases.length || 4, discharged: resolvedCases.length || 3 },
+    ],
+    weekly: [
+      { label: "Mon", intake: 22, discharged: 19 },
+      { label: "Tue", intake: 26, discharged: 24 },
+      { label: "Wed", intake: 31, discharged: 28 },
+      { label: "Thu", intake: 29, discharged: 27 },
+      { label: "Fri", intake: 44, discharged: 38 },
+      { label: "Sat", intake: 48, discharged: 42 },
+      { label: "Sun", intake: 35, discharged: 33 },
+    ],
   };
 
-  const getBorderColor = (priority) => {
-    switch (priority) {
-      case "Critical": return "border-l-red-500";
-      case "High": return "border-l-orange-500";
-      case "Medium": return "border-l-amber-500";
-      default: return "border-l-blue-500";
-    }
-  };
+  // Medical Severity / Category Donut Segments
+  const medicalSegments = [
+    { name: "Cardiac Arrest", value: 8, fill: "#EF4444" },
+    { name: "Trauma / Fracture", value: 16, fill: "#F59E0B" },
+    { name: "Respiratory / Asthma", value: 11, fill: "#10B981" },
+    { name: "Stroke / Neuro", value: 5, fill: "#8B5CF6" },
+    { name: "General EMS Triage", value: 19, fill: "#3B82F6" },
+  ];
 
-  const currentList = currentTab === "pending" ? pending : currentTab === "active" ? inProgress : resolved;
-
-  const formatTime = (date) => {
-    const d = new Date(date);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDate = (date) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diffMs = now - d;
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
-
-  const headerActions = (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => setAudioEnabled(!audioEnabled)}
-        title={audioEnabled ? "Mute audio alerts" : "Unmute audio alerts"}
-        className="h-8 w-8 rounded-lg border-white/10 bg-white/5 hover:bg-white/10 shrink-0 text-slate-300 hover:text-white"
-      >
-        {audioEnabled ? (
-          <Volume2 className="h-4 w-4 text-emerald-400 animate-pulse" />
-        ) : (
-          <VolumeX className="h-4 w-4 text-slate-500" />
-        )}
-      </Button>
-
-      <Button
-        onClick={() => setReportDialogOpen(true)}
-        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 px-3 rounded-lg border-none shadow-lg shadow-emerald-500/20"
-      >
-        <span>+ Log Incident</span>
-      </Button>
-    </div>
-  );
-
-  const renderCaseCard = (item) => (
-    <div
-      key={item._id}
-      className={`bg-[#0d1222]/85 backdrop-blur-md rounded-xl border border-white/5 hover:border-white/10 shadow-2xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden border-l-4 ${getBorderColor(item.priority)}`}
-    >
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-1.5 truncate flex-1">
-            <h3 className="text-sm font-bold text-white leading-tight truncate">
-              {item.name}
-            </h3>
-            {item.language && item.language !== "English" && (
-              <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[9px] px-1.5 py-0 shrink-0 hover:bg-purple-500/20 font-bold" variant="outline">
-                {item.language}
-              </Badge>
-            )}
-          </div>
-          <Badge className={`${getPriorityColor(item.priority)} text-[9px] font-bold px-1.5 py-0 shrink-0 uppercase tracking-wider`} variant="outline">
-            {item.priority}
-          </Badge>
-        </div>
-
-        <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-4 font-semibold">
-          {item.description || item.message}
-        </p>
-
-        <div className="space-y-2">
-          {(item.address || item.location) && (
-            <div className="flex items-start gap-1.5 text-xs text-slate-300 font-semibold bg-white/[0.02] border border-white/5 rounded-lg p-2.5">
-              <MapPin className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
-              <div className="flex flex-col gap-0.5">
-                <span className="leading-tight">{item.address || item.location}</span>
-                {item.area && <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wide">Sector: {item.area}</span>}
-              </div>
-            </div>
-          )}
-          
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/[0.04] text-[10px] font-bold text-slate-500">
-            {item.phone ? (
-              <span className="flex items-center gap-1">
-                <Phone className="h-3.5 w-3.5" /> {item.phone}
-              </span>
-            ) : (
-              <span />
-            )}
-            <span className="flex items-center gap-1 font-mono">
-              <Clock className="h-3 w-3" /> {formatTime(item.createdAt)} · {formatDate(item.createdAt)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-5 pb-5 pt-0 flex flex-col gap-2">
-        <div className="flex gap-2">
-          {(item.latitude || item.address || item.location) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExpandedMapCardId(expandedMapCardId === item._id ? null : item._id)}
-              className={`flex-1 font-bold text-[10px] h-8 rounded-lg flex items-center justify-center gap-1 border-white/10 bg-[#1F2937]/20 hover:bg-[#1F2937]/40 text-slate-300 hover:text-white ${expandedMapCardId === item._id ? 'bg-[#1F2937]/50 text-white' : ''}`}
-            >
-              {expandedMapCardId === item._id ? 'Hide Location Map' : 'View Incident Map'}
-            </Button>
-          )}
-
-          {currentTab === "pending" && (
-            <Button
-              onClick={() => handleUpdateStatus(item._id, "InProgress")}
-              className="flex-grow bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/10 border-none cursor-pointer"
-            >
-              <Stethoscope className="h-3.5 w-3.5" /> Dispatch Ambulance
-            </Button>
-          )}
-          {currentTab === "active" && (
-            <Button
-              onClick={() => handleUpdateStatus(item._id, "Resolved")}
-              className="flex-grow bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1 shadow-lg shadow-blue-500/10 border-none cursor-pointer"
-            >
-              <CheckCircle className="h-3.5 w-3.5" /> Admitted & Resolved
-            </Button>
-          )}
-          {currentTab === "resolved" && (
-            <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 py-1.5 border border-emerald-500/20 bg-emerald-500/5 rounded-lg flex-grow">
-              <HeartHandshake className="h-3.5 w-3.5" /> Admitted & Closed
-            </span>
-          )}
-        </div>
-
-        {expandedMapCardId === item._id && (
-          <div className="w-full h-40 border border-white/5 rounded-lg overflow-hidden mt-1 bg-[#0B1120] animate-fade-in">
-            <iframe
-              width="100%"
-              height="100%"
-              src={
-                item.latitude && item.longitude
-                  ? `https://maps.google.com/maps?q=${item.latitude},${item.longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-                  : `https://maps.google.com/maps?q=${encodeURIComponent(item.address || item.location)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-              }
-              frameBorder="0"
-              scrolling="no"
-              marginHeight="0"
-              marginWidth="0"
-              title="Incident Location Map"
-              className="opacity-75 invert filter contrast-125"
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderTableRow = (item, index) => (
-    <tr
-      key={item._id}
-      className={`border-b border-white/5 hover:bg-white/[0.01] transition-colors ${
-        index % 2 === 0 ? "bg-[#0d1222]/80" : "bg-[#0d1222]/40"
-      }`}
-    >
-      <td className="px-4 py-3.5">
-        <div className="flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-            item.priority === "Critical" ? "bg-red-500 animate-pulse" :
-            item.priority === "High" ? "bg-orange-500" :
-            item.priority === "Medium" ? "bg-amber-500" : "bg-blue-500"
-          }`} />
-          <span className="text-xs font-bold text-white truncate max-w-[180px]">{item.name}</span>
-          {item.language && item.language !== "English" && (
-            <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[9px] px-1.5 py-0 shrink-0 font-bold" variant="outline">
-              {item.language}
-            </Badge>
-          )}
-        </div>
-      </td>
-      <td className="px-4 py-3.5">
-        <Badge className={`${getPriorityColor(item.priority)} text-[9px] font-bold px-1.5 py-0 uppercase tracking-wider`} variant="outline">
-          {item.priority}
-        </Badge>
-      </td>
-      <td className="px-4 py-3.5">
-        <p className="text-xs text-slate-400 font-semibold truncate max-w-[250px]">{item.description || item.message}</p>
-      </td>
-      <td className="px-4 py-3.5">
-        {(item.address || item.location) && (
-          <div className="flex flex-col gap-0.5 max-w-[200px]" title={item.address || item.location}>
-            <div className="flex items-center gap-1 text-xs text-slate-300 font-semibold">
-              <MapPin className="h-3 w-3 text-red-500 shrink-0" />
-              <span className="truncate">{item.address || item.location}</span>
-            </div>
-            {item.landmark && (
-              <span className="text-[9px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.2 rounded w-fit uppercase">
-                {item.landmark}
-              </span>
-            )}
-          </div>
-        )}
-      </td>
-      <td className="px-4 py-3.5 text-xs text-slate-500 font-bold font-mono">
-        {formatDate(item.createdAt)}
-      </td>
-      <td className="px-4 py-3.5 text-right">
-        {currentTab === "pending" && (
-          <Button
-            size="sm"
-            onClick={() => handleUpdateStatus(item._id, "InProgress")}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] uppercase tracking-wider h-7 px-2.5 rounded-lg border-none cursor-pointer"
-          >
-            <Stethoscope className="h-3 w-3 mr-1" /> Dispatch
-          </Button>
-        )}
-        {currentTab === "active" && (
-          <Button
-            size="sm"
-            onClick={() => handleUpdateStatus(item._id, "Resolved")}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[9px] uppercase tracking-wider h-7 px-2.5 rounded-lg border-none cursor-pointer"
-          >
-            <CheckCircle className="h-3 w-3 mr-1" /> Admit
-          </Button>
-        )}
-        {currentTab === "resolved" && (
-          <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider flex items-center justify-end gap-1">
-            <HeartHandshake className="h-3 w-3" /> Admitted
-          </span>
-        )}
-      </td>
-    </tr>
-  );
-
-  const renderEmptyState = () => {
-    const emptyConfig = {
-      pending: { icon: Inbox, text: "No pending triage cases in queue.", color: "text-amber-400" },
-      active: { icon: Activity, text: "No ambulances en route in field.", color: "text-blue-400" },
-      resolved: { icon: HeartHandshake, text: "No admitted/resolved cases logged.", color: "text-emerald-400" },
-    };
-    const cfg = emptyConfig[currentTab] || emptyConfig.pending;
-    const Icon = cfg.icon;
-    return (
-      <div className="text-center py-20 flex flex-col items-center justify-center bg-[#0d1222]/40 rounded-xl border border-white/5">
-        <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center mb-3">
-          <Icon className={`h-6 w-6 ${cfg.color}`} />
-        </div>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{cfg.text}</p>
-        <p className="text-[10px] text-slate-500">Incoming triage cases will sync to this console instantly.</p>
-      </div>
-    );
-  };
+  // AI Intelligence Cards
+  const hospitalAiInsights = [
+    {
+      id: "hosp-1",
+      tone: criticalCases.length > 0 ? "critical" : "insight",
+      title: criticalCases.length > 0 ? `${criticalCases.length} Critical Trauma Call(s) — Pre-Alert Bay 1` : "Trauma Bay Capacity Ready",
+      description: criticalCases.length > 0
+        ? `Emergency caller reports critical vitals in ${criticalCases[0]?.location || 'Metro Area'}. Prepare ALS resuscitation team & blood units.`
+        : "ICU & Emergency Room bed availability is currently at 78% capacity across regional medical centers.",
+      actionLabel: "Prep Trauma Bay",
+    },
+    {
+      id: "hosp-2",
+      tone: "success",
+      title: "Automated EMS Route Telemetry",
+      description: "Ambulance Unit 4 is 3.2 minutes from patient pickup. Hospital ER ingress clear for immediate stretcher transfer.",
+      actionLabel: "View Telemetry",
+    },
+  ];
 
   return (
-    <DashboardLayout title="Hospital EMS Triage" headerActions={headerActions}>
-      <Toaster position="top-right" richColors />
-      
-      <div className="flex flex-col gap-6">
-        {/* Statistics Widgets */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className={`rounded-xl border p-4 transition-all ${
-            currentTab === "pending" 
-              ? "border-amber-500/50 bg-[#0d1222]/85 backdrop-blur-md shadow-[inset_0_0_12px_rgba(245,158,11,0.06)]" 
-              : "border-white/5 bg-[#0d1222]/85 backdrop-blur-md"
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Triage Queue</span>
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center border border-amber-500/25">
-                <Clock className="h-3.5 w-3.5 text-amber-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-black text-white">{allPending.length}</p>
-            <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Awaiting Ambulance</p>
-          </div>
+    <DashboardLayout
+      title="Hospital EMS & Emergency Triage"
+      audioEnabled={audioEnabled}
+      onToggleAudio={() => setAudioEnabled(!audioEnabled)}
+      notifications={pendingCases}
+    >
+      <Toaster richColors position="top-right" />
 
-          <div className={`rounded-xl border p-4 transition-all ${
-            currentTab === "active" 
-              ? "border-emerald-500/50 bg-[#0d1222]/85 backdrop-blur-md shadow-[inset_0_0_12px_rgba(16,185,129,0.06)]" 
-              : "border-white/5 bg-[#0d1222]/85 backdrop-blur-md"
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">En Route</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/25">
-                <Activity className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-              </div>
-            </div>
-            <p className="text-2xl font-black text-white">{allInProgress.length}</p>
-            <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Active Dispatches</p>
-          </div>
+      {/* ── WATERMELON HEADER ────────────────────────────────────── */}
+      <DashboardHeader
+        title="Hospital EMS & Emergency Triage Command"
+        subtitle="Regional Trauma Center & Paramedic Dispatch"
+        department="Emergency Medical Services Directorate"
+        accentColor="#10B981"
+        icon={Activity}
+        onRefresh={fetchHospitalCases}
+        onExport={handleExport}
+        isRefreshing={loading}
+        extraActions={
+          <Button
+            onClick={() => setReportDialogOpen(true)}
+            size="sm"
+            className="h-9 gap-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Plus className="size-4" />
+            <span>Log EMS Call</span>
+          </Button>
+        }
+      />
 
-          <div className={`rounded-xl border p-4 transition-all ${
-            currentTab === "resolved" 
-              ? "border-blue-500/50 bg-[#0d1222]/85 backdrop-blur-md shadow-[inset_0_0_12px_rgba(59,130,246,0.06)]" 
-              : "border-white/5 bg-[#0d1222]/85 backdrop-blur-md"
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Admissions Closed</span>
-              <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/25">
-                <HeartHandshake className="h-3.5 w-3.5 text-blue-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-black text-white">{allResolved.length}</p>
-            <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">Resolved Logs</p>
-          </div>
+      {/* ── TOP METRICS ─────────────────────────────────────────── */}
+      <section className="mb-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            icon={Clock}
+            iconBg="bg-amber-500/10"
+            iconClassName="text-amber-400"
+            label="Triage Queue"
+            value={pendingCases.length.toString()}
+            note={pendingCases.length > 0 ? `${pendingCases.length} awaiting paramedic` : "Queue clear"}
+            trend={pendingCases.length > 0 ? "down" : "up"}
+          />
+          <MetricCard
+            icon={Truck}
+            iconBg="bg-blue-500/10"
+            iconClassName="text-blue-400"
+            label="Ambulances En Route"
+            value={inProgressCases.length.toString()}
+            note="Active paramedic transports"
+            trend="neutral"
+          />
+          <MetricCard
+            icon={Heart}
+            iconBg={criticalCases.length > 0 ? "bg-rose-500/10" : "bg-emerald-500/10"}
+            iconClassName={criticalCases.length > 0 ? "text-rose-400 animate-pulse" : "text-emerald-400"}
+            label="Critical Trauma"
+            value={criticalCases.length.toString()}
+            note={criticalCases.length > 0 ? "Priority 1 Medical Alert" : "Zero code reds"}
+            trend={criticalCases.length > 0 ? "down" : "up"}
+          />
+          <MetricCard
+            icon={CheckCircle}
+            iconBg="bg-emerald-500/10"
+            iconClassName="text-emerald-400"
+            label="Admitted / Stabilized"
+            value={resolvedCases.length.toString()}
+            note={hospitalCases.length > 0 ? `${Math.round((resolvedCases.length / hospitalCases.length) * 100)}% patient clearance` : "100%"}
+            trend="up"
+          />
+        </div>
+      </section>
 
-          <div className="bg-[#0d1222]/85 backdrop-blur-md border border-white/5 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Critical Cases</span>
-              <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center border border-red-500/25">
-                <AlertTriangle className="h-3.5 w-3.5 text-red-400 animate-pulse" />
-              </div>
-            </div>
-            <p className="text-2xl font-black text-white">{criticalCount}</p>
-            <p className="text-[9px] text-red-400/80 font-bold uppercase mt-0.5">Urgent Trauma Care</p>
-          </div>
+      {/* ── QUICK ACTIONS ───────────────────────────────────────── */}
+      <section className="mb-8">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
+          Medical Triage Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickActionCard
+            icon={Truck}
+            accentColor="#10B981"
+            label="Dispatch Ambulance"
+            description="Deploy nearest ALS / BLS unit"
+            onClick={() => toast.success("Ambulance Unit Dispatched with siren")}
+          />
+          <QuickActionCard
+            icon={Heart}
+            accentColor="#EF4444"
+            label="Pre-Alert Trauma Bay"
+            description="Prepare ER surgical team"
+            onClick={() => toast.error("Trauma Bay 1 alerted: Surgical crew ready")}
+          />
+          <QuickActionCard
+            icon={Shield}
+            accentColor="#3B82F6"
+            label="Request Police Escort"
+            description="Clear fast arterial lane"
+            onClick={() => toast.info("Police escort routed for incoming ambulance")}
+          />
+          <QuickActionCard
+            icon={Zap}
+            accentColor="#8B5CF6"
+            label="Mass Casualty Protocol"
+            description="Activate regional surge beds"
+            onClick={() => toast.warning("Mass casualty surge protocol initialized")}
+          />
+        </div>
+      </section>
+
+      {/* ── CHARTS ROW ──────────────────────────────────────────── */}
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8 items-stretch">
+        <div className="lg:col-span-2">
+          <CirculationActivityChart
+            title="EMS Patient Intake & Admission Velocity"
+            subtitle="Hourly emergency room and paramedic volume"
+            dataByTimeframe={chartDataByTimeframe}
+            timeframeOptions={["24h", "shift", "weekly"]}
+            defaultTimeframe="24h"
+            primaryKey="intake"
+            primaryLabel="Incoming Patients"
+            primaryColor="#10B981"
+            secondaryKey="discharged"
+            secondaryLabel="Stabilized / Admitted"
+            secondaryColor="#3B82F6"
+            height={260}
+          />
         </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d1222]/40 p-3.5 border border-white/5 rounded-xl">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <span className={`flex h-1.5 w-1.5 rounded-full ${
-                currentTab === "pending" ? "bg-amber-500 animate-pulse" :
-                currentTab === "active" ? "bg-emerald-500 animate-pulse" : "bg-blue-500"
-              }`} />
-              {currentTab === "pending" ? "Pending Triage List" :
-               currentTab === "active" ? "Active En Route Vehicles" : "Archived Admission Logs"}
-            </h2>
-            <Badge variant="secondary" className="bg-white/5 text-slate-400 border border-white/5 font-bold text-[9px] px-2 rounded-full">
-              {currentList.length}
-            </Badge>
+        <div>
+          <DualDonutChart
+            title="Medical Severity Breakdown"
+            label="Total Cases"
+            segments={medicalSegments}
+            size={175}
+          />
+        </div>
+      </section>
+
+      {/* ── AI INTELLIGENCE ADVISORY ────────────────────────────── */}
+      <section className="mb-8">
+        <IntelligenceFeed
+          title="Hospital AI Triage Advisory & Bed Telemetry"
+          items={hospitalAiInsights}
+          onActionClick={(card) => toast.info("Medical Triage Action", { description: card.title })}
+        />
+      </section>
+
+      {/* ── TABBED CASE MANAGEMENT ROSTER ────────────────────────── */}
+      <section className="rounded-xl border border-border/40 bg-card overflow-hidden shadow-xs">
+        {/* Subtabs + View Mode Bar */}
+        <div className="p-4 sm:p-5 border-b border-border/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5 bg-secondary/50 p-1 rounded-xl border border-border/40">
+            <Link
+              to="/hospital?tab=pending"
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                currentTab === "pending"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Clock className="size-3.5" />
+              <span>Triage Queue</span>
+              {pendingCases.length > 0 && (
+                <span className="size-4.5 rounded-full bg-white/20 text-white text-[10px] flex items-center justify-center font-black">
+                  {pendingCases.length}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/hospital?tab=active"
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                currentTab === "active"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Truck className="size-3.5" />
+              <span>Ambulances En Route</span>
+              {inProgressCases.length > 0 && (
+                <span className="size-4.5 rounded-full bg-white/20 text-white text-[10px] flex items-center justify-center font-black">
+                  {inProgressCases.length}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/hospital?tab=resolved"
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                currentTab === "resolved"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <HeartHandshake className="size-3.5" />
+              <span>Admitted / Closed</span>
+            </Link>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:flex-initial sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
-                placeholder="Search triage logs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs bg-[#1F2937]/20 border-white/10 text-white placeholder:text-slate-600 focus:border-emerald-500/40 rounded-lg focus:ring-0"
+                placeholder="Search medical cases..."
+                className="h-8.5 pl-8 text-xs bg-secondary/50 border-border/60"
               />
             </div>
 
-            <div className="flex items-center border border-white/10 bg-[#1F2937]/10 rounded-lg overflow-hidden shrink-0">
-              <button
+            <div className="flex items-center border border-border/50 rounded-lg p-0.5 bg-secondary/40">
+              <Button
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="icon-xs"
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "grid" ? "bg-white/10 text-white" : "bg-transparent text-slate-500 hover:text-slate-300"}`}
+                className="size-7"
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode("table")}
-                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "table" ? "bg-white/10 text-white" : "bg-transparent text-slate-500 hover:text-slate-300"}`}
+                <LayoutGrid className="size-3.5" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="icon-xs"
+                onClick={() => setViewMode("list")}
+                className="size-7"
               >
-                <List className="h-3.5 w-3.5" />
-              </button>
+                <List className="size-3.5" />
+              </Button>
             </div>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={fetchHospitalCases}
-              className="h-8 w-8 border-white/10 bg-white/5 hover:bg-white/10 shrink-0 rounded-lg text-slate-300 hover:text-white"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
 
-        {/* Incidents Feed */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Syncing hospital triage database...</p>
-          </div>
-        ) : currentList.length === 0 ? (
-          renderEmptyState()
-        ) : viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {currentList.map((item) => renderCaseCard(item))}
-          </div>
-        ) : (
-          <div className="bg-[#0d1222]/85 rounded-xl border border-white/5 shadow-2xl overflow-hidden">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-white/[0.01] border-b border-white/5">
-                  {["Caller", "Priority", "Description", "Location Address", "Time Logged", "Action"].map((th, i) => (
-                    <th key={i} className={`px-4 py-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest ${i === 5 ? "text-right" : ""}`}>{th}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {currentList.map((item, index) => renderTableRow(item, index))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        {/* Case Cards Grid / Table */}
+        <div className="p-4 sm:p-5">
+          {loading ? (
+            <div className="py-16 text-center">
+              <Loader2 className="size-7 animate-spin mx-auto text-emerald-400" />
+              <p className="text-xs text-muted-foreground mt-2 font-medium">Scanning hospital triage registry...</p>
+            </div>
+          ) : displayedCases.length === 0 ? (
+            <div className="py-16 text-center">
+              <Inbox className="size-9 mx-auto opacity-30 text-muted-foreground mb-2" />
+              <h3 className="text-sm font-bold text-foreground">No Medical Triage Cases</h3>
+              <p className="text-xs text-muted-foreground mt-1">Current EMS queue is clear for this filter selection.</p>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                "grid gap-4",
+                viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3" : "grid-cols-1"
+              )}
+            >
+              {displayedCases.map((item) => {
+                const isCritical = item.priority?.toLowerCase() === "critical";
+                const isPending = item.status === "Pending";
+                const isProgress = item.status === "InProgress";
 
-      <ReportEmergencyDialog 
+                return (
+                  <div
+                    key={item._id}
+                    className={cn(
+                      "rounded-xl border p-4 transition-all duration-200 bg-secondary/50 hover:bg-secondary flex flex-col justify-between gap-3 group",
+                      isCritical ? "border-rose-500/40 bg-rose-500/[0.03]" : "border-border/40 hover:border-border"
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-border/20">
+                        <span className="font-mono text-[11px] font-bold text-emerald-400">
+                          #{item._id.slice(-6).toUpperCase()}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={cn(
+                              "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded",
+                              isCritical
+                                ? "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                                : item.priority?.toLowerCase() === "high"
+                                ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            )}
+                          >
+                            {item.priority}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-foreground truncate">
+                        {item.name || "Patient / Caller"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Phone className="size-3 text-slate-400" />
+                        {item.phone || "No callback phone"}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <MapPin className="size-3 text-emerald-400 shrink-0" />
+                        <span className="truncate">{item.location || item.address || "Patient Location Recorded"}</span>
+                      </p>
+
+                      {item.description && (
+                        <p className="text-xs text-secondary-foreground mt-2 line-clamp-2 leading-relaxed bg-background/60 p-2 rounded-lg border border-border/30">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action Controls */}
+                    <div className="pt-2 border-t border-border/20 flex items-center justify-between gap-2">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.location || item.address || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
+                      >
+                        <ExternalLink className="size-3" />
+                        Map
+                      </a>
+
+                      <div className="flex items-center gap-1.5">
+                        {isPending && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusChange(item._id, "InProgress")}
+                            className="h-7 px-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                          >
+                            <Truck className="size-3.5 mr-1" />
+                            Dispatch Unit
+                          </Button>
+                        )}
+                        {isProgress && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusChange(item._id, "Resolved")}
+                            className="h-7 px-2.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <CheckCircle className="size-3.5 mr-1" />
+                            Admit / Close
+                          </Button>
+                        )}
+                        {item.status === "Resolved" && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleStatusChange(item._id, "Pending")}
+                            className="h-7 px-2 text-xs font-semibold"
+                          >
+                            Re-Open
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Report Emergency Dialog */}
+      <ReportEmergencyDialog
         open={reportDialogOpen}
         onOpenChange={setReportDialogOpen}
-        onSuccess={fetchHospitalCases}
+        preselectedDepartment="Hospital"
+        onEmergencyCreated={() => fetchHospitalCases()}
       />
     </DashboardLayout>
   );

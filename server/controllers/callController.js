@@ -163,6 +163,15 @@ const createEmergencyFromTranscript = async ({
 }) => {
   console.log("🤖 AI classifying emergency from call transcript...");
 
+  // Duplication safety check
+  if (callSid) {
+    const existing = await Emergency.findOne({ callSid });
+    if (existing) {
+      console.log(`⚠️ Emergency with CallSid ${callSid} already exists. Skipping duplicate creation.`);
+      return;
+    }
+  }
+
   // Primary: Groq AI classifier (supports EN / HI / MR natively)
   let result = await classifyEmergencyAI(transcript);
 
@@ -196,11 +205,12 @@ const createEmergencyFromTranscript = async ({
     `🚨 Emergency created → ID: ${emergency._id} | Dept: ${emergency.department} | Priority: ${emergency.priority}`
   );
 
-  // Broadcast to all connected operator dashboards in real-time
-  if (io) {
-    io.emit("new-emergency", emergency);
-    console.log("📡 Emergency broadcast to dashboards via Socket.io");
-  }
+  // Broadcast to operator dashboards via targeted Socket.io and bust cache
+  const { broadcastNewEmergency } = require("../services/socketService");
+  const { cacheDel } = require("../config/redis");
+  await cacheDel("stats:*");
+  broadcastNewEmergency(emergency);
+  console.log("📡 Emergency broadcast to dashboards via targeted Socket.io");
 };
 
 module.exports = {

@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createEmergency } from "../../services/emergencyApi";
-import { Loader2, Send, CheckCircle, AlertTriangle, Info, MapPin } from "lucide-react";
+import { Loader2, Send, CheckCircle, AlertTriangle, Info, MapPin, Shield, Flame, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const ReportEmergencyDialog = ({ open, onOpenChange, onSuccess }) => {
@@ -27,6 +27,7 @@ const ReportEmergencyDialog = ({ open, onOpenChange, onSuccess }) => {
     clientLandmark: "",
   });
 
+  // ── Reverse Geocoding (unchanged) ────────────────────────
   const reverseGeocode = async (lat, lon) => {
     try {
       const res = await fetch(
@@ -48,6 +49,7 @@ const ReportEmergencyDialog = ({ open, onOpenChange, onSuccess }) => {
     }
   };
 
+  // ── Geolocation on open (unchanged) ──────────────────────
   useEffect(() => {
     if (open && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -73,6 +75,7 @@ const ReportEmergencyDialog = ({ open, onOpenChange, onSuccess }) => {
     }
   }, [open]);
 
+  // ── Submit (unchanged) ────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.phone.trim() || !formData.message.trim()) {
@@ -122,175 +125,295 @@ const ReportEmergencyDialog = ({ open, onOpenChange, onSuccess }) => {
     onOpenChange(false);
   };
 
-  const getPriorityBadge = (priority) => {
+  // ── Design Helpers ────────────────────────────────────────
+  const getPriorityStyle = (priority) => {
     switch (priority) {
-      case "Critical":
-        return <Badge className="bg-red-500/10 text-red-400 border-red-500/20 font-bold uppercase tracking-wider text-[9px]">Critical</Badge>;
-      case "High":
-        return <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20 font-bold uppercase tracking-wider text-[9px]">High</Badge>;
-      case "Medium":
-        return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold uppercase tracking-wider text-[9px]">Medium</Badge>;
-      default:
-        return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-bold uppercase tracking-wider text-[9px]">Low</Badge>;
+      case "Critical": return { color: "#EF4444", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)" };
+      case "High":     return { color: "#F97316", bg: "rgba(249,115,22,0.08)", border: "rgba(249,115,22,0.2)" };
+      case "Medium":   return { color: "#F59E0B", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.2)" };
+      default:         return { color: "#3B82F6", bg: "rgba(59,130,246,0.08)", border: "rgba(59,130,246,0.18)" };
     }
   };
 
-  const getDeptColor = (dept) => {
-    if (dept === "Police") return "text-blue-400 bg-blue-500/10 border-blue-500/25";
-    if (dept === "Fire Brigade" || dept === "Fire") return "text-red-400 bg-red-500/10 border-red-500/25";
-    return "text-emerald-400 bg-emerald-500/10 border-emerald-500/25";
-  };
-
-  const getDeptIcon = (dept) => {
-    if (dept === "Police") return "🚓";
-    if (dept === "Fire Brigade" || dept === "Fire") return "🚒";
-    return "🏥";
+  const getDeptConfig = (dept) => {
+    if (dept === "Police")                       return { color: "#3B82F6", icon: <Shield className="h-3.5 w-3.5" />, emoji: "🚓" };
+    if (dept === "Fire Brigade" || dept === "Fire") return { color: "#EF4444", icon: <Flame className="h-3.5 w-3.5" />, emoji: "🚒" };
+    return { color: "#22C55E", icon: <Activity className="h-3.5 w-3.5" />, emoji: "🏥" };
   };
 
   return (
     <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose(); else onOpenChange(val); }}>
-      <DialogContent className="sm:max-w-[480px] max-w-[90vw] overflow-y-auto max-h-[85vh] rounded-2xl p-6 bg-[#111827] border border-white/5 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-sm font-bold uppercase tracking-wider text-white">
-            Log New Emergency
-          </DialogTitle>
-          <DialogDescription className="text-slate-400 text-xs font-semibold">
-            Dictate or type incident narrative. The dispatch engine automates routing classification and priority mapping.
-          </DialogDescription>
-        </DialogHeader>
-
-        {result ? (
-          <div className="space-y-5 py-2">
-            <div className="flex flex-col items-center justify-center text-center p-5 border rounded-xl bg-emerald-500/5 border-emerald-500/15">
-              <CheckCircle className="h-10 w-10 text-emerald-500 mb-2.5 animate-pulse" />
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Incident Filed</h3>
-              <p className="text-slate-500 text-[10px] mt-0.5">Broadcasted live in operational command registry.</p>
+      <DialogContent
+        className="sm:max-w-[480px] max-w-[90vw] overflow-y-auto max-h-[88vh] rounded-2xl p-0 border-0"
+        style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.08)" }}
+      >
+        {/* Dialog Top Bar */}
+        <div className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-center gap-3 mb-1">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+            >
+              <AlertTriangle className="h-4 w-4" style={{ color: "#EF4444" }} />
             </div>
+            <DialogTitle className="text-sm font-bold text-white tracking-tight">Log New Emergency</DialogTitle>
+          </div>
+          <DialogDescription className="text-[11px] font-medium ml-11" style={{ color: "#6B7280" }}>
+            Dictate or type incident narrative. The AI dispatch engine auto-classifies routing and priority.
+          </DialogDescription>
+        </div>
 
-            <div className="space-y-3.5 border rounded-xl p-4.5 bg-[#1F2937]/10 border-white/5">
-              <h4 className="text-[9px] uppercase font-bold tracking-widest text-slate-500">AI Dispatch Analysis</h4>
-              
-              <div className="flex items-center justify-between border-b border-white/[0.04] pb-2.5">
-                <span className="text-xs font-semibold text-slate-400">Routed Department</span>
-                <span className={`px-2.5 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${getDeptColor(result.department)}`}>
-                  <span>{getDeptIcon(result.department)}</span>
-                  {result.department === "Fire" ? "Fire Brigade" : result.department}
-                </span>
+        <div className="px-6 py-5">
+          {result ? (
+            /* ── Success State ─────────────────────────────── */
+            <div className="space-y-4 animate-fade-in">
+              {/* Success Banner */}
+              <div
+                className="flex flex-col items-center justify-center text-center p-6 rounded-2xl"
+                style={{ background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.15)" }}
+              >
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                  style={{ background: "rgba(34,197,94,0.1)" }}
+                >
+                  <CheckCircle className="h-7 w-7" style={{ color: "#22C55E" }} />
+                </div>
+                <h3 className="text-sm font-bold text-white mb-1">Incident Filed & Routed</h3>
+                <p className="text-[11px]" style={{ color: "#6B7280" }}>
+                  Broadcasted live in operational command registry.
+                </p>
               </div>
 
-              <div className="flex items-center justify-between border-b border-white/[0.04] pb-2.5 pt-1">
-                <span className="text-xs font-semibold text-slate-400">Threat Priority</span>
-                {getPriorityBadge(result.priority)}
+              {/* AI Analysis Block */}
+              <div
+                className="rounded-2xl p-4 space-y-3.5"
+                style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <p className="text-[9px] uppercase font-black tracking-widest" style={{ color: "#6B7280" }}>
+                  AI Dispatch Analysis
+                </p>
+
+                {/* Department */}
+                {(() => {
+                  const dept = getDeptConfig(result.department);
+                  return (
+                    <div className="flex items-center justify-between py-2.5"
+                      style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span className="text-xs font-medium" style={{ color: "#9CA3AF" }}>Routed Department</span>
+                      <span
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                        style={{ background: `${dept.color}10`, color: dept.color, border: `1px solid ${dept.color}20` }}
+                      >
+                        {dept.icon}
+                        {result.department === "Fire" ? "Fire Brigade" : result.department}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Priority */}
+                {(() => {
+                  const ps = getPriorityStyle(result.priority);
+                  return (
+                    <div className="flex items-center justify-between py-2.5"
+                      style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <span className="text-xs font-medium" style={{ color: "#9CA3AF" }}>Threat Priority</span>
+                      <span
+                        className="text-[9px] font-black px-2.5 py-1 rounded tracking-widest uppercase"
+                        style={{ background: ps.bg, color: ps.color, border: `1px solid ${ps.border}` }}
+                      >
+                        {result.priority}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Location */}
+                {result.address && (
+                  <div className="py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <p className="text-[9px] uppercase font-black tracking-widest mb-1.5 flex items-center gap-1" style={{ color: "#6B7280" }}>
+                      <MapPin className="h-3 w-3" /> Extracted Address
+                    </p>
+                    <p className="text-xs font-medium text-white leading-relaxed">{result.address}</p>
+                  </div>
+                )}
+
+                {/* Narrative */}
+                <div className="pt-1">
+                  <p className="text-[9px] uppercase font-black tracking-widest mb-2" style={{ color: "#6B7280" }}>
+                    Narrative Log
+                  </p>
+                  <p
+                    className="text-xs italic font-medium leading-relaxed p-3 rounded-xl max-h-24 overflow-y-auto"
+                    style={{ color: "#9CA3AF", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
+                  >
+                    "{result.message}"
+                  </p>
+                </div>
               </div>
 
-              {result.address && (
-                <div className="flex flex-col gap-1 border-b border-white/[0.04] pb-2.5 pt-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> Extracted Address
-                  </span>
-                  <span className="text-xs font-bold text-slate-300 leading-normal">{result.address}</span>
+              <button
+                onClick={handleClose}
+                className="w-full h-10 rounded-xl text-white text-xs font-bold uppercase tracking-wider transition-all"
+                style={{ background: "#3B82F6" }}
+                onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+              >
+                Close Log Console
+              </button>
+            </div>
+          ) : (
+            /* ── Form State ────────────────────────────────── */
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error */}
+              {error && (
+                <div
+                  className="flex items-start gap-2.5 p-3.5 rounded-xl text-xs font-medium"
+                  style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", color: "#EF4444" }}
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              <div className="space-y-1.5 pt-1">
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wide block">Narrative log</span>
-                <p className="text-xs italic font-semibold text-slate-400 bg-white/[0.02] p-3 rounded-lg border border-white/5 max-h-24 overflow-y-auto">
-                  "{result.message}"
-                </p>
+              {/* Reporter Name */}
+              <div className="space-y-1.5">
+                <label htmlFor="report-name"
+                  className="block text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: "#6B7280" }}>
+                  Reporter Name
+                </label>
+                <input
+                  id="report-name"
+                  placeholder="e.g. John Doe"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  disabled={loading}
+                  className="w-full h-10 px-3.5 rounded-xl text-sm text-white outline-none transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#F9FAFB",
+                  }}
+                  onFocus={e => e.target.style.borderColor = "rgba(59,130,246,0.5)"}
+                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+                />
               </div>
-            </div>
 
-            <DialogFooter>
-              <Button onClick={handleClose} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg border-none">
-                Close Log Console
-              </Button>
-            </DialogFooter>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 py-1.5">
-            {error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg border bg-red-950/20 border-red-500/20 text-red-400 text-xs font-medium">
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+              {/* Phone */}
+              <div className="space-y-1.5">
+                <label htmlFor="report-phone"
+                  className="block text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: "#6B7280" }}>
+                  Contact Telephone
+                </label>
+                <input
+                  id="report-phone"
+                  type="tel"
+                  placeholder="10-digit mobile number"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                  disabled={loading}
+                  className="w-full h-10 px-3.5 rounded-xl text-sm text-white outline-none transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#F9FAFB",
+                  }}
+                  onFocus={e => e.target.style.borderColor = "rgba(59,130,246,0.5)"}
+                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+                />
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <label htmlFor="name" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Reporter Name</label>
-              <Input
-                id="name"
-                placeholder="e.g. John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                disabled={loading}
-                className="rounded-lg h-9 bg-[#1F2937]/30 border-white/10 text-white placeholder-slate-600 focus:border-blue-500/50 transition-all text-xs"
-              />
-            </div>
+              {/* Incident Statement */}
+              <div className="space-y-1.5">
+                <label htmlFor="report-message"
+                  className="block text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: "#6B7280" }}>
+                  Incident Statement
+                </label>
+                <textarea
+                  id="report-message"
+                  placeholder="Provide specific details (e.g. 'A truck collided with a pole at Sector 4, driver is unconscious and there is fuel leakage...')"
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  required
+                  disabled={loading}
+                  rows={4}
+                  className="w-full px-3.5 py-3 rounded-xl text-sm text-white outline-none resize-none transition-all leading-relaxed"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#F9FAFB",
+                  }}
+                  onFocus={e => e.target.style.borderColor = "rgba(59,130,246,0.5)"}
+                  onBlur={e => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="phone" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact Telephone</label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="10-digit mobile number"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                required
-                disabled={loading}
-                className="rounded-lg h-9 bg-[#1F2937]/30 border-white/10 text-white placeholder-slate-600 focus:border-blue-500/50 transition-all text-xs"
-              />
-            </div>
+              {/* Location note */}
+              {coords.latitude && (
+                <div
+                  className="flex items-center gap-2 p-3 rounded-xl text-[10px] font-semibold"
+                  style={{ background: "rgba(34,197,94,0.05)", border: "1px solid rgba(34,197,94,0.12)", color: "#22C55E" }}
+                >
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span>GPS location captured — will be attached to this report.</span>
+                </div>
+              )}
 
-            <div className="space-y-1.5">
-              <label htmlFor="message" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incident Statement Description</label>
-              <Textarea
-                id="message"
-                placeholder="Provide specific details (e.g. 'A truck collided with a pole at Sector 4, driver is unconscious and there is fuel leakage...')"
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                required
-                disabled={loading}
-                rows={4}
-                className="rounded-lg bg-[#1F2937]/30 border-white/10 text-white placeholder-slate-600 focus:border-blue-500/50 resize-none text-xs leading-normal"
-              />
-            </div>
-
-            <div className="flex gap-2 p-3 border border-white/5 rounded-lg bg-white/[0.01] text-slate-400 text-[10px] leading-relaxed font-semibold">
-              <Info className="h-4 w-4 shrink-0 text-blue-400 mt-0.5" />
-              <span>Ensure description specifies injury levels, fire hazards, or security threats to facilitate accurate AI routing logic.</span>
-            </div>
-
-            <DialogFooter className="pt-2 flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={loading}
-                className="rounded-lg h-9 border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider flex-1"
+              {/* Info tip */}
+              <div
+                className="flex gap-2.5 p-3.5 rounded-xl text-[10px] leading-relaxed font-medium"
+                style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.12)", color: "#6B7280" }}
               >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg h-9 font-bold uppercase tracking-wider flex-1 flex items-center justify-center gap-1.5 border-none shadow-lg shadow-blue-500/10"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4.5 w-4.5 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-3.5 w-3.5" />
-                    Route incident
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        )}
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: "#3B82F6" }} />
+                <span>Specify injury levels, fire hazards, or security threats for accurate AI routing classification.</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  disabled={loading}
+                  className="flex-1 h-10 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "#9CA3AF",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#D1D5DB"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "#9CA3AF"; }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-[2] h-10 rounded-xl text-xs font-bold uppercase tracking-wider text-white flex items-center justify-center gap-2 transition-all"
+                  style={{ background: "#3B82F6" }}
+                  onMouseEnter={e => { if (!loading) e.currentTarget.style.opacity = "0.85"; }}
+                  onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      AI Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5" />
+                      Route Incident
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

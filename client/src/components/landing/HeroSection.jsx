@@ -1,9 +1,11 @@
-import { useRef } from 'react';
+import { useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronDown, Phone, Play, Clock, CheckCircle2, AlertTriangle, Heart } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
-import RadarGlobe from './RadarGlobe';
+import WarpText from '../ui/WarpText';
+
+const RadarGlobe = lazy(() => import('./RadarGlobe'));
 
 const HeroSection = () => {
   const containerRef = useRef(null);
@@ -105,13 +107,27 @@ const HeroSection = () => {
             </span>
           </div>
 
-          {/* Headline - Every Second Counts */}
-          <h1 className="hero-anim-title opacity-0 text-6xl sm:text-7xl lg:text-8xl font-extrabold text-white tracking-tight mb-6 leading-[0.98] font-sans">
-            Every Second<br />
-            <span className="text-[#E8602E] tracking-tight">
-              Counts.
-            </span>
-          </h1>
+          {/* Headline - Every Second Counts with WarpText */}
+          <div className="hero-anim-title opacity-0 w-full mb-6 max-w-xl">
+            <WarpText
+              text={"Every\nSecond\nCounts."}
+              color={['#ffffff', '#ffffff', '#E8602E']}
+              align="left"
+              fontFamily="Inter, sans-serif"
+              fontSize="clamp(3.5rem, 6.5vw, 6.2rem)"
+              fontWeight={900}
+              letterSpacing="-0.04em"
+              lineHeight={0.92}
+              warpStrength={0.08}
+              warpScale={1.7}
+              speed={0.55}
+              pointerInfluence={0.42}
+              pointerStrength={0.38}
+              refraction={0.018}
+              ripple
+              className="h-[220px] sm:h-[270px] lg:h-[310px] w-full"
+            />
+          </div>
 
           {/* Description */}
           <p className="hero-anim-desc opacity-0 text-[15px] text-white/50 mb-9 max-w-lg leading-relaxed font-sans font-medium">
@@ -162,7 +178,9 @@ const HeroSection = () => {
 
         {/* Right Globe Column */}
         <div className="lg:col-span-7 flex justify-center items-center relative hero-anim-globe opacity-0 select-none">
-          <RadarGlobe />
+          <Suspense fallback={<div className="w-[300px] h-[300px] sm:w-[450px] sm:h-[450px]" />}>
+            <RadarGlobe />
+          </Suspense>
         </div>
       </div>
 

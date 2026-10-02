@@ -1,22 +1,19 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useDarkMode } from "../../hooks/useScrollAnimation";
-import { Button } from "@/components/ui/button";
-import { 
-  ShieldAlert, 
-  Volume2, 
-  VolumeX, 
-  Sun, 
-  Moon, 
-  Plus, 
+import {
+  ShieldAlert,
+  Volume2,
+  VolumeX,
+  Plus,
   Radio,
   Clock,
   TrendingUp,
   LayoutDashboard,
   Shield,
   Flame,
-  PlusSquare,
-  Activity
+  Activity,
+  Zap,
 } from "lucide-react";
 
 const DashboardHeader = ({ socketConnected, onReportClick, audioEnabled, toggleAudio }) => {
@@ -30,119 +27,141 @@ const DashboardHeader = ({ socketConnected, onReportClick, audioEnabled, toggleA
   }, []);
 
   const navLinks = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, color: "text-blue-500" },
-    { label: "Police Panel", href: "/police", icon: Shield, color: "text-blue-600" },
-    { label: "Fire Panel", href: "/fire", icon: Flame, color: "text-red-500" },
-    { label: "Hospital Panel", href: "/hospital", icon: Activity, color: "text-emerald-500" },
-    { label: "Analytics", href: "/analytics", icon: TrendingUp, color: "text-purple-500" },
+    { label: "Dashboard",    href: "/dashboard", icon: LayoutDashboard, color: "#8B5CF6" },
+    { label: "Police",       href: "/police",    icon: Shield,          color: "#3B82F6" },
+    { label: "Fire",         href: "/fire",      icon: Flame,           color: "#EF4444" },
+    { label: "Hospital",     href: "/hospital",  icon: Activity,        color: "#22C55E" },
+    { label: "Analytics",    href: "/analytics", icon: TrendingUp,      color: "#8B5CF6" },
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-md transition-all duration-300">
-      <div className="flex h-16 items-center px-4 md:px-8 justify-between">
-        
-        {/* Brand/Logo */}
-        <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 shadow-md shadow-red-500/20 group-hover:scale-105 transition-all">
-              <ShieldAlert className="h-5 w-5 text-white" />
-              <div className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
-              </div>
+    <header
+      className="sticky top-0 z-40 w-full"
+      style={{
+        background: "rgba(9,9,11,0.92)",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        backdropFilter: "blur(16px)",
+      }}
+    >
+      <div className="flex h-14 items-center px-4 md:px-6 justify-between gap-4">
+
+        {/* Brand */}
+        <div className="flex items-center gap-4 shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+            >
+              <Zap className="h-3.5 w-3.5" style={{ color: "#EF4444" }} />
             </div>
             <div className="hidden sm:block">
-              <span className="text-sm font-bold tracking-tight block leading-tight text-foreground">
-                DISPATCH CENTRAL
-              </span>
-              <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase block">
+              <p className="text-[12px] font-black text-white leading-none tracking-tight">DISPATCH CENTRAL</p>
+              <p className="text-[9px] font-semibold mt-0.5 uppercase tracking-widest" style={{ color: "#6B7280" }}>
                 AI Emergency Operations
-              </span>
+              </p>
             </div>
           </Link>
-          
-          {/* Live Status indicator */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full border bg-muted/40">
-            <Radio className={`h-4 w-4 ${socketConnected ? "text-emerald-500 animate-pulse" : "text-red-500 animate-pulse"}`} />
-            <span className="text-xs font-medium">
-              {socketConnected ? "SOCKET ACTIVE" : "SOCKET OFFLINE"}
+
+          {/* Socket status */}
+          <div
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{
+              background: socketConnected ? "rgba(34,197,94,0.06)" : "rgba(239,68,68,0.06)",
+              border: `1px solid ${socketConnected ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)"}`,
+            }}
+          >
+            <Radio
+              className="h-3 w-3"
+              style={{ color: socketConnected ? "#22C55E" : "#EF4444" }}
+            />
+            <span className="text-[9px] font-bold uppercase tracking-widest"
+              style={{ color: socketConnected ? "#22C55E" : "#EF4444" }}>
+              {socketConnected ? "Socket Active" : "Offline"}
             </span>
           </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1">
+        {/* Nav Links */}
+        <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
           {navLinks.map((link) => {
-            const isActive = location.pathname === link.href;
+            const isActive = location.pathname === link.href || location.pathname.startsWith(link.href + "?");
             const Icon = link.icon;
             return (
               <Link
                 key={link.label}
                 to={link.href}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition-all ${
-                  isActive 
-                    ? "bg-accent text-accent-foreground shadow-sm" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                }`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all"
+                style={{
+                  background: isActive ? `${link.color}10` : "transparent",
+                  color: isActive ? link.color : "#6B7280",
+                }}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                    e.currentTarget.style.color = "#D1D5DB";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#6B7280";
+                  }
+                }}
               >
-                <Icon className={`h-4 w-4 ${isActive ? link.color : "text-muted-foreground"}`} />
-                {link.label.replace(" Panel", "")}
+                <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                {link.label}
               </Link>
             );
           })}
         </nav>
 
-        {/* Right Section: Time, Mute, Theme, Report Button */}
-        <div className="flex items-center gap-3">
-          
+        {/* Right Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+
           {/* System Clock */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium border bg-muted/20">
-            <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+          <div
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-semibold"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.07)",
+              color: "#6B7280",
+            }}
+          >
+            <Clock className="h-3 w-3" />
+            {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
           </div>
 
-          {/* Sound toggle button */}
-          <Button
-            variant="outline"
-            size="icon"
+          {/* Sound toggle */}
+          <button
             onClick={toggleAudio}
             title={audioEnabled ? "Mute audio alerts" : "Unmute audio alerts"}
-            className="h-9 w-9 rounded-lg border-muted/50 hover:bg-muted"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.08)",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
           >
-            {audioEnabled ? (
-              <Volume2 className="h-4 w-4 text-emerald-500 animate-pulse" />
-            ) : (
-              <VolumeX className="h-4 w-4 text-muted-foreground" />
-            )}
-          </Button>
+            {audioEnabled
+              ? <Volume2 className="h-3.5 w-3.5" style={{ color: "#22C55E" }} />
+              : <VolumeX className="h-3.5 w-3.5" style={{ color: "#6B7280" }} />}
+          </button>
 
-          {/* Dark mode button */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={toggleDark}
-            className="h-9 w-9 rounded-lg border-muted/50 hover:bg-muted"
-          >
-            {isDark ? (
-              <Sun className="h-4 w-4 text-amber-500 transition-all hover:rotate-45" />
-            ) : (
-              <Moon className="h-4 w-4 text-blue-600" />
-            )}
-          </Button>
-
-          {/* Direct Incident Submission Button */}
+          {/* Report Button */}
           {onReportClick && (
-            <Button
+            <button
               onClick={onReportClick}
-              className="bg-red-600 hover:bg-red-500 text-white gap-2 font-semibold shadow-md shadow-red-500/25 h-9"
-              size="sm"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-white text-[11px] font-bold tracking-wide transition-all"
+              style={{ background: "#EF4444" }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">New Incident</span>
-            </Button>
+            </button>
           )}
         </div>
-
       </div>
     </header>
   );

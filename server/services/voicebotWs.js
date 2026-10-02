@@ -83,6 +83,15 @@ function buildWavFile(pcmBuffer) {
 async function createEmergencyFromTranscript({ transcript, callSid, callerPhone, io }) {
   console.log("🤖 AI classifying emergency from voicebot transcript...");
 
+  // Duplication safety check
+  if (callSid) {
+    const existing = await Emergency.findOne({ callSid });
+    if (existing) {
+      console.log(`⚠️ Emergency with CallSid ${callSid} already exists. Skipping duplicate creation.`);
+      return existing;
+    }
+  }
+
   let result = await classifyEmergencyAI(transcript);
   if (!result || result.department === "Unknown") {
     console.log("🔄 Falling back to keyword classifier...");
@@ -109,10 +118,11 @@ async function createEmergencyFromTranscript({ transcript, callSid, callerPhone,
 
   console.log(`🚨 Emergency created → ID: ${emergency._id} | Dept: ${emergency.department} | Priority: ${emergency.priority}`);
 
-  if (io) {
-    io.emit("new-emergency", emergency);
-    console.log("📡 Broadcast to dashboards via Socket.io");
-  }
+  const { broadcastNewEmergency } = require("./socketService");
+  const { cacheDel } = require("../config/redis");
+  await cacheDel("stats:*");
+  broadcastNewEmergency(emergency);
+  console.log("📡 Broadcast to dashboards via targeted Socket.io");
 
   return emergency;
 }

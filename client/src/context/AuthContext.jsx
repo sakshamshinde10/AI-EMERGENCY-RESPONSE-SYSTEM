@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { getCurrentUser } from "../services/authApi";
+import { disconnectSocket } from "../services/socket";
 
 const AuthContext = createContext(null);
 
@@ -29,61 +30,62 @@ export const AuthProvider = ({ children }) => {
         if (response.success) {
           setUser(response.data);
         } else {
-          logout();
+          logoutInternal();
         }
       } catch (error) {
-        console.log("Token validation failed:", error.message);
-        logout();
+        logoutInternal();
       } finally {
         setLoading(false);
       }
     };
 
     validateToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const login = (tokenValue, userData) => {
-    localStorage.setItem("ecp_token", tokenValue);
-    setToken(tokenValue);
-    setUser(userData);
-  };
-
-  const logout = () => {
+  const logoutInternal = () => {
     localStorage.removeItem("ecp_token");
     setToken(null);
     setUser(null);
   };
 
+  const login = useCallback((tokenValue, userData) => {
+    localStorage.setItem("ecp_token", tokenValue);
+    setToken(tokenValue);
+    setUser(userData);
+  }, []);
+
+  const logout = useCallback(() => {
+    // Clean up any active socket connection on logout
+    disconnectSocket();
+    logoutInternal();
+  }, []);
+
   const isAuthenticated = !!user && !!token;
 
   // Role-based redirect path
-  const getDashboardPath = (role) => {
+  const getDashboardPath = useCallback((role) => {
     switch (role) {
-      case "police":
-        return "/police";
-      case "fire":
-        return "/fire";
-      case "hospital":
-        return "/hospital";
-      case "admin":
-        return "/admin";
-      default:
-        return "/login";
+      case "police": return "/police";
+      case "fire":   return "/fire";
+      case "hospital": return "/hospital";
+      case "admin":  return "/admin";
+      default:       return "/login";
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user,
+    token,
+    loading,
+    isAuthenticated,
+    login,
+    logout,
+    getDashboardPath,
+  }), [user, token, loading, isAuthenticated, login, logout, getDashboardPath]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        isAuthenticated,
-        login,
-        logout,
-        getDashboardPath,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

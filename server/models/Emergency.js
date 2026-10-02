@@ -94,9 +94,20 @@ const emergencySchema = new mongoose.Schema(
   }
 );
 
-// Optimize query performance for department feeds and admin panels
+// High-performance compound & query indexes
 emergencySchema.index({ createdAt: -1 });
-emergencySchema.index({ status: 1 });
+emergencySchema.index({ status: 1, createdAt: -1 });
 emergencySchema.index({ department: 1, createdAt: -1 });
+emergencySchema.index({ department: 1, status: 1, createdAt: -1 });
+emergencySchema.index({ priority: 1, createdAt: -1 });
+emergencySchema.index({ callSid: 1 }, { sparse: true });
+emergencySchema.index({
+  name: "text",
+  phone: "text",
+  message: "text",
+  address: "text",
+  area: "text",
+  city: "text",
+});
 
 module.exports = mongoose.model("Emergency", emergencySchema);
